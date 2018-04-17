@@ -1,0 +1,14 @@
+FROM cef_compiled
+
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+RUN Invoke-WebRequest 'https://www.7-zip.org/a/7z1801-x64.msi' -OutFile '/code/7zip.msi';
+RUN Start-Process msiexec.exe -Wait -ArgumentList '/i c:\code\7zip.msi /quiet /norestart /L*v install.log'
+ENV CEF_COMMAND_7ZIP C:/Program Files/7-Zip/7z.exe
+RUN [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12;Invoke-WebRequest 'https://github.com/cefsharp/cef-binary/archive/master.zip' -OutFile '/code/master.zip';
+RUN Expand-Archive c:\code\master.zip -DestinationPath "C:\code\cef-binary";
+WORKDIR /code/cef-binary/cef-binary-master/
+RUN $env:Path = 'c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\;' + $env:Path;setx /M PATH $env:Path;
+RUN 'New-ItemProperty -Path Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\MSBuild\ToolsVersions\4.0 -Name VCTargetsPath -PropertyType String -Value "`$`(MSBuildExtensionsPath32)\Microsoft.Cpp\v4.0\"'
+RUN ./build.ps1 -DownloadBinary local -CefBinaryDir /code/binaries/ -CefVersion auto -NoDebugBuild -Extension zip -Target vs2017;./build.ps1 -DownloadBinary local -CefBinaryDir /code/binaries/ -CefVersion auto -NoDebugBuild -Extension zip -Target nupkg-only;
+RUN Compress-Archive -Path NuGet -CompressionLevel Fastest -DestinationPath C:\packages

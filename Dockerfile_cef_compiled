@@ -1,0 +1,3 @@
+FROM vs
+ADD binaries.zip c:/code/
+RUN Expand-Archive c:\code\binaries.zip  -DestinationPath "C:\code\binaries";

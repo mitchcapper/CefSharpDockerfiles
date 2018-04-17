@@ -1,0 +1,27 @@
+FROM microsoft/dotnet-framework:4.7.1-windowsservercore
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+RUN mkdir c:\code\automate;mkdir c:\temp\;mkdir c:\code\depot_tools;
+RUN Invoke-WebRequest 'https://aka.ms/vscollect.exe' -OutFile 'C:\TEMP\collect.exe';
+RUN Invoke-WebRequest 'https://dist.nuget.org/win-x86-commandline/v4.1.0/nuget.exe' -OutFile 'c:\code\depot_tools\;';
+
+WORKDIR "Program Files"
+#Powershell 50 char limit fix
+RUN Remove-Item -Recurse -Force '.\WindowsPowerShell\Modules\PSReadLine'
+WORKDIR c:\\code\\depot_tools
+
+#Not sure why the community installer doesn't instal the debugger with --all but all the same this is a quick fix.
+RUN Invoke-WebRequest https://go.microsoft.com/fwlink/?linkid=864422 -OutFile 'C:\code\winsdksetup.exe';
+RUN $p = Start-Process -Wait -PassThru -FilePath C:\code\winsdksetup.exe -ArgumentList ' /features OptionId.WindowsDesktopDebuggers /quiet /Log #"%TEMP%\\winsdksetup.log /norestart'; if (($ret = $p.ExitCode) -and ($ret -ne 3010)) { throw ('Install failed with exit code 0x{0:x}' -f $ret) }
+
+
+RUN Invoke-WebRequest 'https://aka.ms/vs/15/release/vs_community.exe' -OutFile 'C:\code\vs_community.exe';
+
+#3010 is fine, as that is just restart requested.
+# https://docs.microsoft.com/en-us/visualstudio/install/workload-component-id-vs-community
+# Some of these are more needed for cefsharp, especially the older sdks (win8.1 and 4.52).  Note Microsoft.Net.Component.4.6.1.SDK is needed also for cefsharp to get mscoree for some reason the 4.7.1 version does not get found.
+RUN $p = Start-Process -Wait -PassThru -FilePath C:\code\vs_community.exe -ArgumentList ' --quiet --wait --norestart --nocache --add Microsoft.Net.Component.4.7.1.SDK --add Microsoft.VisualStudio.Component.Windows10SDK --add Microsoft.Net.Component.4.6.1.SDK --add Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Win81 --add Microsoft.VisualStudio.Component.Windows81SDK --add Microsoft.Net.Component.4.5.2.TargetingPack --add Microsoft.VisualStudio.Component.Windows10SDK.16299.Desktop --add Microsoft.VisualStudio.Component.Git --add Microsoft.VisualStudio.Component.Windows10SDK.15063.Desktop --add Microsoft.VisualStudio.Workload.NativeDesktop --add Microsoft.VisualStudio.Component.VC.ATLMFC --includeRecommended --remove Microsoft.VisualStudio.Component.Windows10SDK.10240 --remove Microsoft.VisualStudio.Component.Windows10SDK.10586 --remove Component.Android.NDK.R12B --remove Component.Android.SDK23.Private --remove Component.MDD.Android --remove Component.Unreal.Android --remove Component.Android.NDK.R15C --remove Component.Android.SDK19 --remove Component.Android.SDK22 --remove Component.Android.SDK23 --remove Component.Android.SDK25 --remove Component.MDD.Android --remove Component.Android.NDK.R12B --remove Component.Android.NDK.R12B_3264 --remove Component.Android.NDK.R13B --remove Component.Android.NDK.R13B_3264 --remove Component.Android.NDK.R15C_3264 --remove Component.Google.Android.Emulator.API23.V2 --remove Component.Android.SDK25 --remove Component.Google.Android.Emulator.API25 --remove Component.Android.SDK23.Private --remove Component.Google.Android.Emulator.API23.Private --remove Component.Android.Emulator --remove Component.Android.NDK.R11C --remove Component.Android.NDK.R11C_3264 --remove Microsoft.VisualStudio.Component.Windows10SDK.14393 --remove Microsoft.VisualStudio.Component.Phone.Emulator.15254 --remove Microsoft.VisualStudio.Component.Phone.Emulator.15254 --remove Microsoft.VisualStudio.Component.Phone.Emulator --remove Microsoft.VisualStudio.Component.Phone.Emulator.15063 --remove Component.Anaconda3.x64 --remove Component.Anaconda2.x64 --remove Component.Anaconda2.x86 --remove Component.Anaconda3.x86 --remove Microsoft.VisualStudio.Component.Unity --remove Component.UnityEngine.x64 --remove Component.UnityEngine.x86 --remove Component.Incredibuild --remove Component.IncredibuildMenu --remove Microsoft.VisualStudio.Component.Sharepoint.Tools --remove Microsoft.VisualStudio.Component.TeamOffice --remove Component.Cocos;'; if (($ret = $p.ExitCode) -and ($ret -ne 3010)) { C:\TEMP\collect.exe; throw ('Install failed with exit code 0x{0:x}' -f $ret) }; Remove-Item -Recurse -Force 'c:\ProgramData\Package Cache\'
+
+
+$p = Start-Process -Wait -PassThru -FilePath C:\code\vs_community.exe -ArgumentList ' --quiet --wait --norestart --nocache --add Microsoft.Component.NetFX.Core.Runtime';
+

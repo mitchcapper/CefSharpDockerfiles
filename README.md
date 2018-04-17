@@ -1,2 +1,127 @@
-# CefSharpDockerfiles
-Automated chrome cef building and cefsharp building dockerfiles and scripts
+# CefSharp Dockerfiles
+
+<!-- MarkdownTOC autolink="true" -->
+
+- [Summary](#summary)
+- [Thanks](#thanks)
+- [Caveats](#caveats)
+- [Requirements](#requirements)
+- [Server Setup](#server-setup)
+	- [Azure Specifics](#azure-specifics)
+	- [Estimated time requirements](#estimated-time-requirements)
+- [Build Process](#build-process)
+	- [Dual Build Flag](#dual-build-flag)
+- [Docker for Windows Caveats](#docker-for-windows-caveats)
+	- [How requirements were determined](#how-requirements-were-determined)
+- [General Warnings](#general-warnings)
+- [Additional Resources](#additional-resources)
+
+<!-- /MarkdownTOC -->
+
+## Summary
+Automated chrome cef building and cefsharp building dockerfiles and scripts.
+
+While the processes of building CEF and CEFSHARP are not hard they require a very exacting environment and build steps can take a _long_ time so are annoying to repeat.  The goal if this repo is a collection of scripts to automate everything to make it easy for anyone to do.  We are using Docker to run everything in a container as it makes it much easier to reproduce and won't pollute your dev environment with all the pre-reqs.  You can easily tweak the exact versions you want to build, and the build flags.
+
+## Thanks
+Thanks to the fantastic CEFSharp team, especially @amaitland who works insanely hard on the open source project.  @perlun provided some great direction on the Windows building and was also a huge help.  Please support CEFSharp if you use it, even if you do a small monthly donation of $10 or $25 it can be a big help: https://salt.bountysource.com/teams/cefsharp
+
+
+## Caveats
+Beware if using the exact same version string as an official CEF Build as it will mean you need to make sure your nuget source is always used before the master source.  If you use a slightly different minor build you will not have that problem.  For CefSharp you can use a manual higher fake minor version number(ie .99) to not get confused with the official builds (but the CEF build note above still applies).
+
+In part we use the latest version of several installers/build tools if they changed so might the success of these dockerfiles.  It does not build the debug versions of CEF or CEFSharp.   This could be added as an option pretty easily (but would probably at-least double build times). For some reason I had issues getting the automated build script for CEF to work doing the calls by hand is pretty basic however.
+
+## Requirements
+The following requirements are for chrome 63 and the current vs_2017 installer, they may change over time.  Compiling is largely CPU bound but linking is largely IO bound.
+
+- At least 32GB of ram dedicated to this would recommend 40GB total with page file to make sure you don't run out.  You can have any amount of that 32/40GB as a page file, just beware the less actual ram the much slower linking will be.
+- At least 250GB of space (300G is safer).
+
+
+## Server Setup
+There is not much in terms of a software requirements other than docker. 
+Install Docker EE from: https://docs.docker.com/install/windows/docker-ee/#docker-universal-control-plane-and-windows (or standard docker for windows for desktops) if docker is not auto installed.
+
+You will want a docker configuration with options similar to this. On windows client you can use the docker settings in advanced mode, for server the file is edited directly (or created if it didn't exist) at C:\ProgramData\docker\config\daemon.json
+```
+{
+  "registry-mirrors": [],
+  "insecure-registries": [],
+  "debug": true,
+  "experimental": false,
+  "exec-opts": [
+    "isolation=process"
+  ],
+  "data-root": "d:/docker_data",
+  "storage-opts": [
+    "size=400G"
+  ]
+}
+```
+### Azure Specifics
+If you are new to Azure it is pretty easy to get started and they will give you $200 for your first month free so there will be no costs.
+An Azure F32 v2 is pretty good, its only 256 gigs of space but that should be ok.  ~$2.72 an hour in WestUS2 running the latest windows image. You can use the prebuilt image "Windows Server 2016 Datacenter - with Containers" or a newer one if it exists.  I would recommend one with a full shell (ie 1709 with containers is built on core so no explorer etc).  Use the local SSD as the docker storage folder (note this will likely get wiped if you de-allocate the machine so do the entire build at once).  You could potentially hook up a huge number of disks in raid 0 configuration to get somewhat decent speed that way.
+Create a new resource, search for the prebuilt image noted above.  You do not need managed disks, assign a random user/password, new network/storage/etc is all fine.  For the size make sure you select one of the F series (F32 recommended). It won't show by default, leave HD type set to SSD put Min CPU's at 32 and Ram at 64 then hit "View all".
+
+I suggest auto-shutdown to make sure you don't leave it running.
+
+### Estimated time requirements
+With the Azure F32 v2 host above the total estimated build time is about 3.5 hours (~ $10 on azure). Machines are nice 600MB/sec read/write to the local disk.  The time could be cut close to in half if you used a F64 v2 VM, but your cost will remain the same (as its twice the price for twice the power).  Note it can vary somewhat dramatically for the not cef build steps based on the luck of the draw (but the cef build is most of the build time).  It seems local IO depending on what physical host it is spun up on can cause 30-50% performance fluxes.  Most of the build steps make efficient use of the machine however: The git cloning is not very efficient. It is 30 minutes of the cef build time below. It doesn't quite max out network or IO. The linking stage is also not super efficient see the DUAL_BUILD flag below to help with that. Linking will take 20+ minutes per platform (40 total unless run concurrently).  Here are the individual build/commit times:
+- pull source image: 6 minutes
+- vs: 11.6 minutes
+- cef: 2.8 hours
+- cef binary copy: 6 seconds
+- cef_compiled: 65 seconds
+- cefsharp: 12 minutes
+
+
+
+## Build Process
+Once docker is setup and running copy this repo to a local folder.  Edit set_version.ps1 and change the version strings to match what you want then run it to have it update the dockerfiles.  
+
+Next run build.ps1 and if you are lucky you will end up with a cefsharp_packages.zip file with all the nupkg files you need:)  Beware that as docker can be flaky you may need to call build.ps1 a few times.  It should largely just resume.
+
+To be safer you can run each build command by hand.  The hardest (longest) build step if the CEF build at the start. You can comment out the last step in the dockerfile and manually do that step and commit it. To do so comment out the final build step in Dockerfile_cef then run the following:
+```
+	#So if the autmate-git.py doesn't work (if something errors out it doesn't always stop at the right point) try running the build steps manually that are there.
+	# From the c:/code/chromium/src folder run the build hooks to download tools: gclient runhooks
+	# From the c:/code/chromium/src/cef folder run the following to make the projects: ./cef_create_projects.bat
+	# From the c:/code/chromium/src
+	# ninja -C out/Release_GN_x64 cefclient
+	# ninja -C out/Release_GN_x86 cefclient
+	# cd C:/code/chromium/src/cef/tools/
+	# C:/code/chromium/src/cef/tools/make_distrib.bat --ninja-build --allow-partial;
+	# c:/code/chromium/src/cef/tools/make_distrib.bat --ninja-build --allow-partial --x64-build;
+
+	# Allow partial needed if not building debug builds
+```
+### Dual Build Flag
+Note the DUAL_BUILD may speed up builds by running x86 and x64 builds concurrently (each with 1/2 as many threads).  This is primarily useful during linking.  Linking is largely single threaded and takes awhile and is single thread CPU bound (given enough IO). The main issue is memory usage.  If both linking steps run at once you may need nearly 50GB of memory at once (in worst case).  It would be better if they linked at slightly separate times but as every compute system was different there did not seem to be a good way to determine how long to sleep for to make it most efficient.
+
+
+## Docker for Windows Caveats
+- It is slow and Docker for windows is flaky at *best*. Keep in mind this is running latest 16299 w/ 32 gigs of ram. Sometimes it will miss a step that should be cached and redo it. It seems less flaky running docker in process isolation mode (--isolation=process) instead of hyper-v mode.  This is a legal compile time limitation however that windows clients cannot use this mode.  Granted building your own docker windows binary is also not that hard.  NOTE: If you are not using process isolation mode you WILL need to do -m 64 (or similar) on every docker build step to up the default memory limit.
+- Make sure to disable file indexing on the drive used for docker data and DISABLE any anti-virus / windows defender it will hugely slow you down.  The build script will try to notify you if it notices defender is doing real time monitoring.
+- Space is massively hogged and it is super slow with large numbers of small files and large files are rewritten 3 extra times when a container is committed.  To avoid this we will remove repos/etc used during a build step before it finishes to speed things up. 
+- windowsfilter behind the scenes horridness: First you work in the vhd file, so all changes made while it is building or you are running it happen in the VHD.	Second after commit / build step finishes the container will exit. Docker will not return until it fully commits this build step (but the container will NOT show running). Docker starts the diff with the VHD and copies all the files for that layer to docker_data\tmp\random_id\.  Oddly it actually seems to create one random tmp random id folders with duplicate data from the VM, then it reads each file in this tmp folder writing it to another docker-data\tmp\random_id\ folder.  It slowly deletes from one of them once it finishes writing the second.   Then it makes another copy to the docker_data\windowsfilter\final_id permanent folder then removes the temp folder and the original VHD.   I am not sure why all the copying.  This can take A LONG time (hours on a 7200 rpm drive), the only way to know if this is going on is watch your storage. If docker is writing then its doing it.  Use procmon.exe if it is reading from a VHD writing to a tmp folder then its step 1.  If it is reading from one tmp folder and writing to another tmp folder that is step 2.  If it is reading from a tmp folder and writing to a windowsfilter sub folder then it is on the final step 3.  
+- Sometimes docker may start to mis-behave often restarting docker may fix the problem.  Sometimes a full reboot is needed.
+
+### How requirements were determined
+- Space: windows base ~10 gigs, ~6 gigs for the finished visual studio build image.  Another 20 or so when done with cefsharp.   Chrome will take 200 gigs or so during build for the VHD, we remove the bulk of this before it finishes though.  So for docker storage I would recommend 16 + 200 = ~ 220 gigs of space + some buffer so maybe 250GB. 
+- Memory: For Chrome 63 bare minimum memory requirements (actual + page file) for JUST the linker is x86: 24.2 GB x64: 25.7 GB. I would make sure you have atleast 32 gigs of ram to be safe with OS and other overhead.
+
+
+## General Warnings
+-Cannot do component builds as it will not work for other items
+-remove_webcore_debug_symbols seemed to also cause issues
+-DONT USE is_win_fastlink as it is only for debug builds not for release
+-YOU MUST DO A --quiet VS install for headless, otherwise it will just hang forever.
+
+## Additional Resources
+The following were helpful:
+http://perlun.eu.org/en/2017/11/30/building-chromium-and-cef-from-source
+https://bitbucket.org/chromiumembedded/cef/wiki/MasterBuildQuickStart.md
+https://docs.microsoft.com/en-us/visualstudio/install/advanced-build-tools-container
+https://docs.microsoft.com/en-us/visualstudio/install/build-tools-container
+https://chromium.googlesource.com/chromium/src/+/lkcr/docs/windows_build_instructions.md
