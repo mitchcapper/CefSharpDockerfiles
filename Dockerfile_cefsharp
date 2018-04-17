@@ -3,14 +3,14 @@ RUN MKDIR c:/code/cefsharp
 WORKDIR c:/code/cefsharp
 RUN $env:Path = 'c:/Program Files/Git/bin/;' + $env:Path;setx /M PATH $env:Path;
 RUN git clone https://github.com/cefsharp/CefSharp.git .
-ENV CEFSHARP_BRANCH cefsharp/63
+ARG CEFSHARP_BRANCH cefsharp/63
 #This line and the one two below are due to waiting to use the new vs2017 compat build script
 RUN cp build.ps1 ../
 RUN git checkout $env:CEFSHARP_BRANCH;
 RUN cp ../build.ps1 .
-ENV CEFSHARP_VERSION 63.0.90
-ENV CEF_VERSION_STR auto
-ENV CHROME_BRANCH 3239
+ARG CEFSHARP_VERSION 63.0.90
+ARG CEF_VERSION_STR auto
+ARG CHROME_BRANCH 3239
 ENV PACKAGE_SOURCE C:/code/cef-binary/cef-binary-master/NuGet
 ADD cefsharp_set_versions_and_restore.ps1 c:/code/cefsharp
 RUN ./cefsharp_set_versions_and_restore.ps1

@@ -1,37 +1,8 @@
 Set-StrictMode -version latest;
 $ErrorActionPreference = "Stop";
-Function RunProc{
-    [CmdletBinding()]
-    Param($proc,$opts,
-    [switch] $errok,
-    [switch] $no_wait
-    )
-    if ($proc.ToUpper().EndsWith(".PL")){
-        $path = (C:\Windows\system32\where.exe $proc | Out-String).Trim()
-        $opts = "$path $opts";
-        $proc="perl";       
-    }
-    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    $pinfo.FileName = $proc
-    $working = Convert-Path .
-    Write-Host "Running: $proc $opts in $working"  -Foreground Green    
-    $pinfo.WorkingDirectory = $working
-    $pinfo.UseShellExecute = $false
-    $pinfo.Arguments = $opts
-    $p = New-Object System.Diagnostics.Process
-    $p.StartInfo = $pinfo
-    $p.Start() | Out-Null
-    if ($no_wait){
-    	return $p;
-    }
-    $p.WaitForExit()
-    if ($p.ExitCode -ne 0 -and -not $errok){
-        throw "Process $proc $opts exited with non zero code: $($p.ExitCode) aborting!" 
-    }
-    if ($errok){
-        return $p.ExitCode;
-    }
-}
+$WorkingDir = split-path -parent $MyInvocation.MyCommand.Definition;
+. (Join-Path $WorkingDir 'functions.ps1')
+
 $build_args_add = "";
 if ($env:DUAL_BUILD -eq "1"){
 	$cores = (Get-WmiObject -class Win32_processor).NumberOfLogicalProcessors + 2; #ninja defaults to number of procs + 2 
@@ -43,7 +14,7 @@ if ($env:DUAL_BUILD -eq "1"){
 Function RunBuild{
     [CmdletBinding()]
     Param($build_args_add,$version)
-    return RunProc -proc "c:/code/depot_tools/ninja.exe" -opts "$build_args_add -C out/Release_GN_$version cefclient" -no_wait;
+    return RunProc "host" -proc "c:/code/depot_tools/ninja.exe" -opts "$build_args_add -C out/Release_GN_$version cefclient" -no_wait;
 }
 RunProc -proc "c:/code/depot_tools/python.bat" -errok -opts "c:/code/automate/automate-git.py --download-dir=c:/code --branch=$env:CHROME_BRANCH --no-build --no-debug-build --no-distrib";
 Set-Location -Path c:/code/chromium/src/cef;

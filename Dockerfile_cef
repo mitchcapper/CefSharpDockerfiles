@@ -4,19 +4,19 @@ RUN $env:Path = 'c:/Program Files/Git/bin/;' + $env:Path;setx /M PATH $env:Path;
 RUN Invoke-WebRequest 'https://storage.googleapis.com/chrome-infra/depot_tools.zip' -OutFile 'C:/code/depot_tools.zip';
 RUN Expand-Archive C:/code/depot_tools.zip -DestinationPath "C:/code/depot_tools";
 RUN $env:Path = 'c:/code/depot_tools/;' + $env:Path;setx /M PATH $env:Path;
-ENV GN_DEFINES is_debug=false
+ARG GN_DEFINES="is_debug=false"
 ENV DEPOT_TOOLS_WIN_TOOLCHAIN 0
 ENV CEF_USE_GN 1
 ENV GYP_MSVS_VERSION 2017
-ENV DUAL_BUILD 0
-ENV GYP_DEFINES target_arch=x64 
-RUN setX /M DEPOT_TOOLS_WIN_TOOLCHAIN 0;setX /M GYP_MSVS_VERSION 2017;setx /M GN_DEFINES "$env:GN_DEFINES";setx /M GYP_DEFINES "$env:GYP_DEFINES";
-ENV CHROME_BRANCH 3239
+ARG DUAL_BUILD="0"
+ARG GYP_DEFINES="target_arch=x64 "
+RUN setX /M DEPOT_TOOLS_WIN_TOOLCHAIN 0;setX /M GYP_MSVS_VERSION 2017;setx /M GN_DEFINES "$env:GN_DEFINES";setx /M GYP_DEFINES "$env:GYP_DEFINES";setx /M DUAL_BUILD "$env:DUAL_BUILD";
+ARG CHROME_BRANCH=3239
 ADD https://bitbucket.org/chromiumembedded/cef/raw/master/tools/automate/automate-git.py c:/code/automate/
 RUN cd c:/code/depot_tools/;update_depot_tools.bat;git checkout .\cipd.ps1;update_depot_tools.bat;
 
 # Comment out the next step if you want to do it by hand
-ADD cef_build.ps1 c:/code
+ADD functions.ps1 cef_build.ps1 c:/code/
 RUN c:/code/cef_build.ps1
 
 

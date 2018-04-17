@@ -79,11 +79,11 @@ With the Azure F32 v2 host above the total estimated build time is about 3.5 hou
 
 
 ## Build Process
-Once docker is setup and running copy this repo to a local folder.  Edit set_version.ps1 and change the version strings to match what you want then run it to have it update the dockerfiles.  
+Once docker is setup and running copy this repo to a local folder.  Copy versions_src.ps1 to versions.ps1 and change the version strings to match what you want.  NOTE BASE_DOCKER_FILE must match the same kernel as the host machine IF you are using process isolation mode.  This means you cannot use the 1709 image on an older host and you can use and older image on a 1709 host.  Either base file is fine however to use just match it to the host.  
 
-Next run build.ps1 and if you are lucky you will end up with a cefsharp_packages.zip file with all the nupkg files you need:)  Beware that as docker can be flaky you may need to call build.ps1 a few times.  It should largely just resume.
+Next run build.ps1 and if you are lucky you will end up with a cefsharp_packages.zip file with all the nupkg files you need:)  Beware that as docker might be flaky you may need to call build.ps1 a few times.  It should largely just resume.
 
-To be safer you can run each build command by hand.  The hardest (longest) build step if the CEF build at the start. You can comment out the last step in the dockerfile and manually do that step and commit it. To do so comment out the final build step in Dockerfile_cef then run the following:
+To be safer you can run the biggest build command by hand. The hardest (longest) build step if the CEF build at the start. You can comment out the last step in the dockerfile and manually do that step and commit it.  Infact you can just docker run the build image from before than manually call cef_build.ps1 one or more times (it should do a decent job at auto-resuming) until success.  If you are using a proper host with enough ram it should be able to automatically  build 9 times out of 10 (if not higher) with its current redundant tries.  Of course if you prefer to manually run the commands from it you can do that too. To do so comment out the final build step in Dockerfile_cef then run the following:
 ```
 	#So if the autmate-git.py doesn't work (if something errors out it doesn't always stop at the right point) try running the build steps manually that are there.
 	# From the c:/code/chromium/src folder run the build hooks to download tools: gclient runhooks
@@ -94,8 +94,7 @@ To be safer you can run each build command by hand.  The hardest (longest) build
 	# cd C:/code/chromium/src/cef/tools/
 	# C:/code/chromium/src/cef/tools/make_distrib.bat --ninja-build --allow-partial;
 	# c:/code/chromium/src/cef/tools/make_distrib.bat --ninja-build --allow-partial --x64-build;
-
-	# Allow partial needed if not building debug builds
+	# Allow partial needed if not building debug builds, make sure to run it when done or run the cef_build last few commands to create the archive with the result and to clean up the workspace of the source files.
 ```
 ### Dual Build Flag
 Note the DUAL_BUILD may speed up builds by running x86 and x64 builds concurrently (each with 1/2 as many threads).  This is primarily useful during linking.  Linking is largely single threaded and takes awhile and is single thread CPU bound (given enough IO). The main issue is memory usage.  If both linking steps run at once you may need nearly 50GB of memory at once (in worst case).  It would be better if they linked at slightly separate times but as every compute system was different there did not seem to be a good way to determine how long to sleep for to make it most efficient.
@@ -109,7 +108,7 @@ Note the DUAL_BUILD may speed up builds by running x86 and x64 builds concurrent
 - Sometimes docker may start to mis-behave often restarting docker may fix the problem.  Sometimes a full reboot is needed.
 
 ### How requirements were determined
-- Space: windows base ~10 gigs, ~6 gigs for the finished visual studio build image.  Another 20 or so when done with cefsharp.   Chrome will take 200 gigs or so during build for the VHD, we remove the bulk of this before it finishes though.  So for docker storage I would recommend 16 + 200 = ~ 220 gigs of space + some buffer so maybe 250GB. 
+- Space: windows base ~6 gigs, ~9 gigs for the finished visual studio build image.  Another 20 or so when done with cefsharp.   Chrome will take 200 gigs or so during build for the VHD, we remove the bulk of this before it finishes though.  So for docker storage I would recommend 16 + 200 = ~ 220 gigs of space + some buffer so maybe 250GB. 
 - Memory: For Chrome 63 bare minimum memory requirements (actual + page file) for JUST the linker is x86: 24.2 GB x64: 25.7 GB. I would make sure you have atleast 32 gigs of ram to be safe with OS and other overhead.
 
 
