@@ -21,7 +21,8 @@
 ## Summary
 Automated chrome cef building and cefsharp building dockerfiles and scripts.
 
-While the processes of building CEF and CEFSHARP are not hard they require a very exacting environment and build steps can take a _long_ time so are annoying to repeat.  The goal if this repo is a collection of scripts to automate everything to make it easy for anyone to do.  We are using Docker to run everything in a container as it makes it much easier to reproduce and won't pollute your dev environment with all the pre-reqs.  You can easily tweak the exact versions you want to build, and the build flags.
+While the processes of building CEF and CEFSHARP are not hard they require a very exacting environment and build steps can take a _long_ time so are annoying to repeat.  The goal if this repo is a collection of scripts to automate everything to make it easy for anyone to do.  We are using Docker to run everything in a container as it makes it much easier to reproduce and won't pollute your dev environment with all the pre-reqs.  You can easily tweak the exact versions you want to build, and the build flags.  From creating a VM on your cloud provider of choice (or your own machine) it is about 20 minutes of setup, starting a build script, and just waiting a few hours for it to spit out the compiled binaries. 
+
 
 ## Thanks
 Thanks to the fantastic CEFSharp team, especially @amaitland who works insanely hard on the open source project.  @perlun provided some great direction on the Windows building and was also a huge help.  Please support CEFSharp if you use it, even if you do a small monthly donation of $10 or $25 it can be a big help: https://salt.bountysource.com/teams/cefsharp
@@ -113,10 +114,10 @@ Note the DUAL_BUILD may speed up builds by running x86 and x64 builds concurrent
 
 
 ## General Warnings
--Cannot do component builds as it will not work for other items
--remove_webcore_debug_symbols seemed to also cause issues
--DONT USE is_win_fastlink as it is only for debug builds not for release
--YOU MUST DO A --quiet VS install for headless, otherwise it will just hang forever.
+- Cannot do component builds as it will not work for other items
+- Remove_webcore_debug_symbols seemed to also cause issues
+- DONT USE is_win_fastlink as it is only for debug builds not for release
+- YOU MUST DO A --quiet VS install for headless, otherwise it will just hang forever.
 
 ## Additional Resources
 The following were helpful:
