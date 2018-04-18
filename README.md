@@ -37,7 +37,7 @@ In part we use the latest version of several installers/build tools if they chan
 The following requirements are for chrome 63 and the current vs_2017 installer, they may change over time.  Compiling is largely CPU bound but linking is largely IO bound.
 
 - At least 32GB of ram dedicated to this would recommend 40GB total with page file to make sure you don't run out.  You can have any amount of that 32/40GB as a page file, just beware the less actual ram the much slower linking will be.
-- At least 250GB of space (300G is safer).
+- At least 250GB of space.
 
 
 ## Server Setup
