@@ -21,7 +21,7 @@
 ## Summary
 Automated chrome cef building and cefsharp building dockerfiles and scripts.
 
-While the processes of building CEF and CEFSHARP are not hard they require a very exacting environment and build steps can take a _long_ time so are annoying to repeat.  The goal if this repo is a collection of scripts to automate everything to make it easy for anyone to do.  We are using Docker to run everything in a container as it makes it much easier to reproduce and won't pollute your dev environment with all the pre-reqs.  You can easily tweak the exact versions you want to build, and the build flags.  From creating a VM on your cloud provider of choice (or your own machine) it is about 20 minutes of setup, starting a build script, and just waiting a few hours for it to spit out the compiled binaries. 
+While the processes of building CEF and CEFSHARP are not hard they require a very exacting environment and build steps can take a _long_ time so are annoying to repeat.  The goal if this repo is a collection of scripts to automate everything to make it easy for anyone to do.  We are using Docker to run everything in a container as it makes it much easier to reproduce and won't pollute your dev environment with all the pre-reqs.  You can easily tweak the exact versions you want to build, and the build flags.  From creating a VM on your cloud provider of choice (or your own machine) it is about 20 minutes of setup, starting a build script, and just waiting a few hours for it to spit out the compiled binaries.  It has been tested with 63 and 65.
 
 
 ## Thanks
@@ -34,7 +34,7 @@ Beware if using the exact same version string as an official CEF Build as it wil
 In part we use the latest version of several installers/build tools if they changed so might the success of these dockerfiles.  It does not build the debug versions of CEF or CEFSharp.   This could be added as an option pretty easily (but would probably at-least double build times). For some reason I had issues getting the automated build script for CEF to work doing the calls by hand is pretty basic however.
 
 ## Requirements
-The following requirements are for chrome 63 and the current vs_2017 installer, they may change over time.  Compiling is largely CPU bound but linking is largely IO bound.
+The following requirements are for chrome 63(and more or less 65) and the current vs_2017 installer, they may change over time.  Compiling is largely CPU bound but linking is largely IO bound.
 
 - At least 32GB of ram dedicated to this would recommend 40GB total with page file to make sure you don't run out.  You can have any amount of that 32/40GB as a page file, just beware the less actual ram the much slower linking will be.
 - At least 250GB of space.
@@ -68,13 +68,12 @@ Create a new resource, search for the prebuilt image noted above.  You do not ne
 I suggest auto-shutdown to make sure you don't leave it running.
 
 ### Estimated time requirements
-With the Azure F32 v2 host above the total estimated build time is about 3.5 hours (~ $10 on azure). Machines are nice 600MB/sec read/write to the local disk.  The time could be cut close to in half if you used a F64 v2 VM, but your cost will remain the same (as its twice the price for twice the power).  Note it can vary somewhat dramatically for the not cef build steps based on the luck of the draw (but the cef build is most of the build time).  It seems local IO depending on what physical host it is spun up on can cause 30-50% performance fluxes.  Most of the build steps make efficient use of the machine however: The git cloning is not very efficient. It is 30 minutes of the cef build time below. It doesn't quite max out network or IO. The linking stage is also not super efficient see the DUAL_BUILD flag below to help with that. Linking will take 20+ minutes per platform (40 total unless run concurrently).  Here are the individual build/commit times:
-- pull source image: 6 minutes
-- vs: 11.6 minutes
-- cef: 2.8 hours
-- cef binary copy: 6 seconds
-- cef_compiled: 65 seconds
-- cefsharp: 12 minutes
+With the Azure F32 v2 host above the total estimated build time is about 2.1 hours (~$6 on azure). Machines are nice 600MB/sec read/write to the local disk.  The time could be cut close to in half if you used a F64 v2 VM, but your cost will remain the same (as its twice the price for twice the power).  Note it can vary somewhat dramatically for the not cef build steps based on the luck of the draw (but the cef build is most of the build time).  It seems local IO depending on what physical host it is spun up on can cause 30-50% performance fluxes.  Most of the build steps make efficient use of the machine however: The git cloning is not very efficient. It is 30 minutes of the cef build time below. It doesn't quite max out network or IO. The linking stage is also not super efficient see the DUAL_BUILD flag below to help with that. Linking will take 20+ minutes per platform (40 total unless run concurrently).  Here are the individual build/commit times:
+- pull source image: 5 minutes
+- vs: 11 minutes
+- cef: 1.8 hours
+- cef-binary: 3 minutes
+- cefsharp: 3.7 minutes
 
 
 
@@ -101,7 +100,8 @@ Note the DUAL_BUILD may speed up builds by running x86 and x64 builds concurrent
 
 
 ## Docker for Windows Caveats
-- It is slow and Docker for windows is flaky at *best*. Keep in mind this is running latest 16299 w/ 32 gigs of ram. Sometimes it will miss a step that should be cached and redo it. It seems less flaky running docker in process isolation mode (--isolation=process) instead of hyper-v mode.  This is a legal compile time limitation however that windows clients cannot use this mode.  Granted building your own docker windows binary is also not that hard.  NOTE: If you are not using process isolation mode you WILL need to do -m 64 (or similar) on every docker build step to up the default memory limit.
+- Most of these issues become an issue on the longer docker runs and disk speed. On an Azure VM it rarely fails out.  There has been some redundancy added to build scripts to address these issues.
+- It is slow and Docker for windows can be flaky. Keep in mind this is running latest 16299 w/ 32 gigs of ram. Sometimes it will miss a step that should be cached and redo it. It seems less flaky running docker in process isolation mode (--isolation=process) instead of hyper-v mode.  This is a legal compile time limitation however that windows clients cannot use this mode.  Granted building your own docker windows binary is also not that hard.  NOTE: If you are not using process isolation mode you WILL need to do -m 64 (or similar) on every docker build step to up the default memory limit.
 - Make sure to disable file indexing on the drive used for docker data and DISABLE any anti-virus / windows defender it will hugely slow you down.  The build script will try to notify you if it notices defender is doing real time monitoring.
 - Space is massively hogged and it is super slow with large numbers of small files and large files are rewritten 3 extra times when a container is committed.  To avoid this we will remove repos/etc used during a build step before it finishes to speed things up. 
 - windowsfilter behind the scenes horridness: First you work in the vhd file, so all changes made while it is building or you are running it happen in the VHD.	Second after commit / build step finishes the container will exit. Docker will not return until it fully commits this build step (but the container will NOT show running). Docker starts the diff with the VHD and copies all the files for that layer to docker_data\tmp\random_id\.  Oddly it actually seems to create one random tmp random id folders with duplicate data from the VM, then it reads each file in this tmp folder writing it to another docker-data\tmp\random_id\ folder.  It slowly deletes from one of them once it finishes writing the second.   Then it makes another copy to the docker_data\windowsfilter\final_id permanent folder then removes the temp folder and the original VHD.   I am not sure why all the copying.  This can take A LONG time (hours on a 7200 rpm drive), the only way to know if this is going on is watch your storage. If docker is writing then its doing it.  Use procmon.exe if it is reading from a VHD writing to a tmp folder then its step 1.  If it is reading from one tmp folder and writing to another tmp folder that is step 2.  If it is reading from a tmp folder and writing to a windowsfilter sub folder then it is on the final step 3.  

@@ -59,10 +59,15 @@ function out {
 Function confirm($str){
 	return $PSCmdlet.ShouldContinue($str, "");
 }
-$last_time = Get-Date;
+$global:last_time = Get-Date;
+$global:PERF_FILE="";
 Function TimerNow($name){
 	$now = Get-Date;
-	$diff = ($now -  $last_time).TotalSeconds.ToString("0.0");
-	Write-Host $name took $diff  -ForegroundColor Green;
-	$last_time = $now;
+	$diff = ($now -  $global:last_time).TotalSeconds.ToString("0.0");
+	$str = "$(Get-Date) $name took $diff";
+	Write-Host $str  -ForegroundColor Green;
+	if ($PERF_FILE -ne ""){
+		$str | out -FilePath $PERF_FILE -Append;
+	}
+	$global:last_time = $now;
 }

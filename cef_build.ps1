@@ -64,6 +64,7 @@ if (@(dir -Filter "cef_binary_3.*_windows32.zip" "c:/code/chromium/src/cef/binar
 if (@(dir -Filter "cef_binary_3.*_windows64.zip" c:/code/chromium/src/cef/binary_distrib/).Count -ne 1){
 	throw "Not able to find win64 file as expected";
 }
-Compress-Archive -Path c:/code/chromium/src/cef/binary_distrib/*.zip -CompressionLevel Fastest -DestinationPath C:/binaries;
+mkdir c:/code/binaries;
+copy-item c:/code/chromium/src/cef/binary_distrib/*.zip -destination  C:/code/binaries;
 Set-Location -Path /;
 Remove-Item -Recurse -Force c:/code/chromium;

@@ -1,4 +1,7 @@
-FROM cef_compiled
+FROM cef as builder
+
+FROM vs
+COPY --from=builder c:/code/binaries c:/code/binaries
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 

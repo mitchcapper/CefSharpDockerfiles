@@ -1,4 +1,0 @@
-FROM vs
-SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
-ADD binaries.zip c:/code/
-RUN Expand-Archive c:\code\binaries.zip  -DestinationPath "C:\code\binaries";

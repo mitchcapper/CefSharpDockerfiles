@@ -13,6 +13,8 @@ if (Test-Path ./versions.ps1 -PathType Leaf){
 }
 Set-StrictMode -version latest;
 $ErrorActionPreference = "Stop";
+
+$global:PERF_FILE = Join-Path $WorkingDir "perf.log";
 if ((Get-MpPreference).DisableRealtimeMonitoring -eq $false){
 	Write-Host Warning, windows defender is enabled it will slow things down. -Foreground Red 
 }
@@ -42,26 +44,14 @@ if (! $NoMemoryWarn){
 
 echo packages_cefsharp.zip | out .dockerignore
 echo binaries.zip | out .dockerignore -Append
-if (! (Test-Path ./binaries.zip -PathType Leaf) -or $NoSkip){
-	TimerNow("Starting");
-    RunProc -proc "docker" -opts "pull $VAR_BASE_DOCKER_FILE";
-    TimerNow("Pull base file");
-	RunProc -proc "docker" -opts "build --build-arg BASE_DOCKER_FILE=`"$VAR_BASE_DOCKER_FILE`" -f Dockerfile_vs -t vs ."
-	TimerNow("VSBuild");
-	RunProc -proc "docker" -opts "build --build-arg DUAL_BUILD=`"$VAR_DUAL_BUILD`" --build-arg GN_DEFINES=`"$VAR_GN_DEFINES`" --build-arg GYP_DEFINES=`"$VAR_GYP_DEFINES`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cef -t cef ."
-	TimerNow("CEF Build");
-	docker rm cef;
-    Start-Sleep -s 3; #sometimes we are too fast, file in use error
-	RunProc -proc "docker" -opts "run --name cef cef cmd /C echo CopyVer"
-	RunProc -proc "docker" -opts "cp cef:/binaries.zip ."
-	TimerNow("Copy CEF Binary Local (1GB+)");
-	echo packages_cefsharp.zip  | out .dockerignore
-	RunProc -proc "docker" -opts "build -f Dockerfile_cef_compiled -t cef_compiled ."
-	TimerNow("Add CEF package to clean cef_compiled image");
-	echo binaries.zip | out .dockerignore -Append
-}else{
-		Write-Host binaries.zip already exists, skipping initial vs, cef, and cef_compiled build. Use flag NoSkip to avoid this. -ForegroundColor Red
-}
+
+TimerNow("Starting");
+RunProc -proc "docker" -opts "pull $VAR_BASE_DOCKER_FILE";
+TimerNow("Pull base file");
+RunProc -proc "docker" -opts "build --build-arg BASE_DOCKER_FILE=`"$VAR_BASE_DOCKER_FILE`" -f Dockerfile_vs -t vs ."
+TimerNow("VSBuild");
+RunProc -proc "docker" -opts "build --build-arg DUAL_BUILD=`"$VAR_DUAL_BUILD`" --build-arg GN_DEFINES=`"$VAR_GN_DEFINES`" --build-arg GYP_DEFINES=`"$VAR_GYP_DEFINES`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cef -t cef ."
+TimerNow("CEF Build");
 RunProc -proc "docker" -opts "build -f Dockerfile_cef_binary -t cef_binary ."
 TimerNow("CEF Binary compile");
 RunProc -proc "docker" -opts "build --build-arg CEFSHARP_BRANCH=`"$VAR_CEFSHARP_BRANCH`" --build-arg CEFSHARP_VERSION=`"$VAR_CEFSHARP_VERSION`" --build-arg CEF_VERSION_STR=`"$VAR_CEF_VERSION_STR`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cefsharp -t cefsharp ."
@@ -70,3 +60,4 @@ docker rm cefsharp;
 Start-Sleep -s 3; #sometimes we are too fast, file in use error
 RunProc -proc "docker" -opts "run --name cefsharp cefsharp cmd /C echo CopyVer"
 RunProc -proc "docker" -opts "cp cefsharp:/packages_cefsharp.zip ."
+TimerNow("CEFSharp copy files locally");
