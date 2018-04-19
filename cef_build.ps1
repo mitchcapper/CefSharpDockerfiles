@@ -35,14 +35,20 @@ $MAX_FAILURES=20;
 $x86_fails=0;
 $x64_fails=0;
 #There can be a race conditions we try to patch out the media failures one above
-while (! $px86.HasExited -or ! $px64.HasExited){
+while ($true){
+	$retry=$false;
     if ($px86.HasExited -and $px86.ExitCode -ne 0 -and $x86_fails -lt $MAX_FAILURES){
         $x86_fails++;
         $px86 = RunBuild -build_args_add $build_args_add -version "x86";
+        $retry=$true;
     }
     if ($px64.HasExited -and $px64.ExitCode -ne 0 -and $x64_fails -lt $MAX_FAILURES){
         $x64_fails++;
         $px64 = RunBuild -build_args_add $build_args_add -version "x64";
+        $retry=$true;
+    }
+    if ($px64.HasExited -and $px86.HasExited -and ! $retry){
+    	break;
     }
     Start-Sleep -s 15
 }
