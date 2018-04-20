@@ -11,6 +11,7 @@
 	- [Docker For Windows Config File](#docker-for-windows-config-file)
 	- [Azure Specifics](#azure-specifics)
 	- [Estimated time requirements](#estimated-time-requirements)
+	- [HyperV Isolation \(for server or Windows 10 client\) Mode](#hyperv-isolation-for-server-or-windows-10-client-mode)
 - [Build Process](#build-process)
 	- [Dual Build Flag](#dual-build-flag)
 - [Docker for Windows Caveats](#docker-for-windows-caveats)
@@ -46,8 +47,8 @@ The following requirements are for chrome 63(and more or less 65) and the curren
 
 
 ## Server Setup
-There is not much in terms of a software requirements other than docker. 
-Install Docker EE from: https://docs.docker.com/install/windows/docker-ee/#docker-universal-control-plane-and-windows (or standard docker for windows for desktops) if docker is not auto installed.
+There is not much in terms of a software requirements other than docker. You can run it on Windows Server or Windows 10 Client.
+For Windows 10 Client Install it from https://store.docker.com/editions/community/docker-ce-desktop-windows. For server Docker EE from: https://docs.docker.com/install/windows/docker-ee/#docker-universal-control-plane-and-windows (or standard docker for windows for desktops) if docker is not auto installed.   If installing on Windows 10 Client make sure to see the Hyper V Notes below.
 
 ### Docker For Windows Config File
 You will want a docker configuration with options similar to this. On windows client you can use the docker settings in advanced mode, for server the file is edited directly (or created if it didn't exist) at C:\ProgramData\docker\config\daemon.json
@@ -81,12 +82,13 @@ With the Azure F32 v2 host above the total estimated build time is about 2.1 hou
 - cef-binary: 3 minutes
 - cefsharp: 3.7 minutes
 
-
+### HyperV Isolation (for server or Windows 10 client) Mode
+HyperV isolation mode should be avioded if possible.  It is slower, and more prone to fail.  For Windows 10 client there is not a **legal** alternative.  NOTE: If you are not using process isolation mode you WILL need to set ```$VAR_HYPERV_MEMORY_ADD``` and make sure your page file is properly sized.  It will set the memory on every docker build step to up the default memory limit.  Technically this is primarily needed in the CEF build step.   NOTE if you stop docker during a build with HyperV it does not properly kill off the hyperV container restart docker to fix this.
 
 ## Build Process
 Once docker is setup and running copy this repo to a local folder.  Copy versions_src.ps1 to versions.ps1 and change the version strings to match what you want.  NOTE BASE_DOCKER_FILE must match the same kernel as the host machine IF you are using process isolation mode.  This means you cannot use the 1709 image on an older host and you can use and older image on a 1709 host.  Either base file is fine however to use just match it to the host.  
 
-Next run build.ps1 and if you are lucky you will end up with a cefsharp_packages.zip file with all the nupkg files you need:)  Beware that as docker might be flaky you may need to call build.ps1 a few times.  It should largely just resume.   Once it is done building you will have the cefsharp_packages.zip file.  If you want any of the CEF binaries, or symbol files, you can copy them from the CEF image like: ```docker cp cef:c:/code/binaries/*.zip .```
+Next run build.ps1 and if you are lucky you will end up with a cefsharp_packages.zip file with all the nupkg files you need:)  Beware that as docker might be flaky(especially in hyperV mode) you may need to call build.ps1 a few times.  It should largely just resume.   Once it is done building you will have the cefsharp_packages.zip file.  If you want any of the CEF binaries, or symbol files, you can copy them from the CEF image like: ```docker cp cef:c:/code/binaries/*.zip .```
 
 To be safer you can run the biggest build command by hand. The hardest (longest) build step if the CEF build at the start. You can comment out the last step in the dockerfile and manually do that step and commit it.  Infact you can just docker run the build image from before than manually call cef_build.ps1 one or more times (it should do a decent job at auto-resuming) until success.  If you are using a proper host with enough ram it should be able to automatically  build 9 times out of 10 (if not higher) with its current redundant tries.  Of course if you prefer to manually run the commands from it you can do that too. To do so comment out the final build step in Dockerfile_cef then run the following:
 ```
@@ -107,7 +109,7 @@ Note the DUAL_BUILD may speed up builds by running x86 and x64 builds concurrent
 
 ## Docker for Windows Caveats
 - Most of these issues become an issue on the longer docker runs and disk speed. On an Azure VM it rarely fails out.  There has been some redundancy added to build scripts to address these issues.
-- It is slow and Docker for windows can be flaky. Keep in mind this is running latest 16299 w/ 32 gigs of ram. Sometimes it will miss a step that should be cached and redo it. It seems less flaky running docker in process isolation mode (--isolation=process) instead of hyper-v mode.  This is a legal compile time limitation however that windows clients cannot use this mode.  Granted building your own docker windows binary is also not that hard.  NOTE: If you are not using process isolation mode you WILL need to do -m 64 (or similar) on every docker build step to up the default memory limit.
+- It is slow and Docker for windows can be flaky (especially in HyperV mode). Keep in mind this is running latest 16299 w/ 32 gigs of ram. Sometimes it will miss a step that should be cached and redo it. It seems less flaky running docker in process isolation mode (--isolation=process) instead of hyper-v mode.  This is a legal compile time limitation however that windows clients cannot use this mode.  Granted building your own docker windows binary is also not that hard.  If using hyperv mode please see the server setup for HyperV notes.
 - Make sure to disable file indexing on the drive used for docker data and DISABLE any anti-virus / windows defender it will hugely slow you down.  The build script will try to notify you if it notices defender is doing real time monitoring.
 - Space is massively hogged and it is super slow with large numbers of small files and large files are rewritten 3 extra times when a container is committed.  To avoid this we will remove repos/etc used during a build step before it finishes to speed things up. 
 - windowsfilter behind the scenes horridness: First you work in the vhd file, so all changes made while it is building or you are running it happen in the VHD.	Second after commit / build step finishes the container will exit. Docker will not return until it fully commits this build step (but the container will NOT show running). Docker starts the diff with the VHD and copies all the files for that layer to docker_data\tmp\random_id\.  Oddly it actually seems to create one random tmp random id folders with duplicate data from the VM, then it reads each file in this tmp folder writing it to another docker-data\tmp\random_id\ folder.  It slowly deletes from one of them once it finishes writing the second.   Then it makes another copy to the docker_data\windowsfilter\final_id permanent folder then removes the temp folder and the original VHD.   I am not sure why all the copying.  This can take A LONG time (hours on a 7200 rpm drive), the only way to know if this is going on is watch your storage. If docker is writing then its doing it.  Use procmon.exe if it is reading from a VHD writing to a tmp folder then its step 1.  If it is reading from one tmp folder and writing to another tmp folder that is step 2.  If it is reading from a tmp folder and writing to a windowsfilter sub folder then it is on the final step 3.  

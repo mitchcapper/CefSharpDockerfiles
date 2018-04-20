@@ -44,17 +44,16 @@ if (! $NoMemoryWarn){
 
 echo packages_cefsharp.zip | out .dockerignore
 echo binaries.zip | out .dockerignore -Append
-
 TimerNow("Starting");
 RunProc -proc "docker" -opts "pull $VAR_BASE_DOCKER_FILE";
 TimerNow("Pull base file");
-RunProc -proc "docker" -opts "build --build-arg BASE_DOCKER_FILE=`"$VAR_BASE_DOCKER_FILE`" -f Dockerfile_vs -t vs ."
+RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg BASE_DOCKER_FILE=`"$VAR_BASE_DOCKER_FILE`" -f Dockerfile_vs -t vs ."
 TimerNow("VSBuild");
-RunProc -proc "docker" -opts "build --build-arg DUAL_BUILD=`"$VAR_DUAL_BUILD`" --build-arg GN_DEFINES=`"$VAR_GN_DEFINES`" --build-arg GYP_DEFINES=`"$VAR_GYP_DEFINES`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cef -t cef ."
+RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg DUAL_BUILD=`"$VAR_DUAL_BUILD`" --build-arg GN_DEFINES=`"$VAR_GN_DEFINES`" --build-arg GYP_DEFINES=`"$VAR_GYP_DEFINES`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cef -t cef ."
 TimerNow("CEF Build");
-RunProc -proc "docker" -opts "build -f Dockerfile_cef_binary -t cef_binary ."
+RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD -f Dockerfile_cef_binary -t cef_binary ."
 TimerNow("CEF Binary compile");
-RunProc -proc "docker" -opts "build --build-arg CEFSHARP_BRANCH=`"$VAR_CEFSHARP_BRANCH`" --build-arg CEFSHARP_VERSION=`"$VAR_CEFSHARP_VERSION`" --build-arg CEF_VERSION_STR=`"$VAR_CEF_VERSION_STR`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cefsharp -t cefsharp ."
+RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg CEFSHARP_BRANCH=`"$VAR_CEFSHARP_BRANCH`" --build-arg CEFSHARP_VERSION=`"$VAR_CEFSHARP_VERSION`" --build-arg CEF_VERSION_STR=`"$VAR_CEF_VERSION_STR`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cefsharp -t cefsharp ."
 TimerNow("CEFSharp compile");
 docker rm cefsharp;
 Start-Sleep -s 3; #sometimes we are too fast, file in use error
