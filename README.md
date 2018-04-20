@@ -4,9 +4,11 @@
 
 - [Summary](#summary)
 - [Thanks](#thanks)
+- [Quick Start](#quick-start)
 - [Caveats](#caveats)
 - [Requirements](#requirements)
 - [Server Setup](#server-setup)
+	- [Docker For Windows Config File](#docker-for-windows-config-file)
 	- [Azure Specifics](#azure-specifics)
 	- [Estimated time requirements](#estimated-time-requirements)
 - [Build Process](#build-process)
@@ -27,6 +29,9 @@ While the processes of building CEF and CEFSHARP are not hard they require a ver
 ## Thanks
 Thanks to the fantastic CEFSharp team, especially @amaitland who works insanely hard on the open source project.  @perlun provided some great direction on the Windows building and was also a huge help.  Please support CEFSharp if you use it, even if you do a small monthly donation of $10 or $25 it can be a big help: https://salt.bountysource.com/teams/cefsharp
 
+## Quick Start
+If using Azure create a F32_v2 VM with the image "Windows Server 2016 Datacenter - with Containers", if using another machine just install docker for windows (make sure you have 40GB of ram between actual ram + page file). Set the [Docker For Windows Config File](#docker-for-windows-config-file) changing the path to the folder to store data on (suggested local temp drive) and restart docker service.   Copy the items from this repo into a folder. Copy the versions_src.ps1 to versions.ps1 and change the variables to what you want: for example ```$VAR_GN_DEFINES="is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome";$VAR_DUAL_BUILD="1";```. Only use DUAL_BUILD if you have 60 gigs of ram or more, otherwise leave it at 0 and the build will take an extra 20-40 minutes.  If you are building on a windows 1709 machine change VAR_BASE_DOCKER_FILE to the 1709 image commented out next to it. Run ./build.ps1 and it should build the packages. 
+
 
 ## Caveats
 Beware if using the exact same version string as an official CEF Build as it will mean you need to make sure your nuget source is always used before the master source.  If you use a slightly different minor build you will not have that problem.  For CefSharp you can use a manual higher fake minor version number(ie .99) to not get confused with the official builds (but the CEF build note above still applies).
@@ -44,6 +49,7 @@ The following requirements are for chrome 63(and more or less 65) and the curren
 There is not much in terms of a software requirements other than docker. 
 Install Docker EE from: https://docs.docker.com/install/windows/docker-ee/#docker-universal-control-plane-and-windows (or standard docker for windows for desktops) if docker is not auto installed.
 
+### Docker For Windows Config File
 You will want a docker configuration with options similar to this. On windows client you can use the docker settings in advanced mode, for server the file is edited directly (or created if it didn't exist) at C:\ProgramData\docker\config\daemon.json
 ```
 {
@@ -80,7 +86,7 @@ With the Azure F32 v2 host above the total estimated build time is about 2.1 hou
 ## Build Process
 Once docker is setup and running copy this repo to a local folder.  Copy versions_src.ps1 to versions.ps1 and change the version strings to match what you want.  NOTE BASE_DOCKER_FILE must match the same kernel as the host machine IF you are using process isolation mode.  This means you cannot use the 1709 image on an older host and you can use and older image on a 1709 host.  Either base file is fine however to use just match it to the host.  
 
-Next run build.ps1 and if you are lucky you will end up with a cefsharp_packages.zip file with all the nupkg files you need:)  Beware that as docker might be flaky you may need to call build.ps1 a few times.  It should largely just resume.
+Next run build.ps1 and if you are lucky you will end up with a cefsharp_packages.zip file with all the nupkg files you need:)  Beware that as docker might be flaky you may need to call build.ps1 a few times.  It should largely just resume.   Once it is done building you will have the cefsharp_packages.zip file.  If you want any of the CEF binaries, or symbol files, you can copy them from the CEF image like: ```docker cp cef:c:/code/binaries/*.zip .```
 
 To be safer you can run the biggest build command by hand. The hardest (longest) build step if the CEF build at the start. You can comment out the last step in the dockerfile and manually do that step and commit it.  Infact you can just docker run the build image from before than manually call cef_build.ps1 one or more times (it should do a decent job at auto-resuming) until success.  If you are using a proper host with enough ram it should be able to automatically  build 9 times out of 10 (if not higher) with its current redundant tries.  Of course if you prefer to manually run the commands from it you can do that too. To do so comment out the final build step in Dockerfile_cef then run the following:
 ```
