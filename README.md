@@ -81,9 +81,9 @@ I suggest auto-shutdown to make sure you don't leave it running.
 With the Azure F32 v2 host above the total estimated build time is about 2.1 hours (~$6 on azure). Machines are nice 600MB/sec read/write to the local disk.  The time could be cut close to in half if you used a F64 v2 VM, but your cost will remain the same (as its twice the price for twice the power).  Note it can vary somewhat dramatically for the not cef build steps based on the luck of the draw (but the cef build is most of the build time).  It seems local IO depending on what physical host it is spun up on can cause 30-50% performance fluxes.  Most of the build steps make efficient use of the machine however: The git cloning is not very efficient. It is 30 minutes of the cef build time below. It doesn't quite max out network or IO. The linking stage is also not super efficient see the DUAL_BUILD flag below to help with that. Linking will take 20+ minutes per platform (40 total unless run concurrently).  Here are the individual build/commit times:
 - pull source image: 5 minutes
 - vs: 11 minutes
-- cef: 1.8 hours
+- cef: 1.8 hours (with DUAL_BUILD)
 - cef-binary: 3 minutes
-- cefsharp: 3.7 minutes
+- cefsharp: 4 minutes
 
 ### HyperV Isolation (for server or Windows 10 client) Mode
 HyperV isolation mode should be avioded if possible.  It is slower, and more prone to fail.  For Windows 10 client there is not a **legal** alternative.  NOTE: If you are not using process isolation mode you WILL need to set ```$VAR_HYPERV_MEMORY_ADD``` and make sure your page file is properly sized (recommend a page file at least a few gigs bigger as it needs that amount of FREE page file space).  It will set the memory on every docker build step to up the default memory limit.  Technically this is primarily needed in the CEF build step.   NOTE if you stop docker during a build with HyperV it does not properly kill off the hyperV container restart docker to fix this.

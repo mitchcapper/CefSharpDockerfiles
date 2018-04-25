@@ -42,8 +42,7 @@ if (! $NoMemoryWarn){
 }
 
 
-echo packages_cefsharp.zip | out .dockerignore
-echo binaries.zip | out .dockerignore -Append
+echo *.zip | out .dockerignore
 TimerNow("Starting");
 RunProc -proc "docker" -opts "pull $VAR_BASE_DOCKER_FILE";
 TimerNow("Pull base file");
@@ -51,12 +50,21 @@ RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg BASE_DOCK
 TimerNow("VSBuild");
 RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg DUAL_BUILD=`"$VAR_DUAL_BUILD`" --build-arg GN_DEFINES=`"$VAR_GN_DEFINES`" --build-arg GYP_DEFINES=`"$VAR_GYP_DEFINES`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cef -t cef ."
 TimerNow("CEF Build");
-RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD -f Dockerfile_cef_binary -t cef_binary ."
-TimerNow("CEF Binary compile");
-RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg CEFSHARP_BRANCH=`"$VAR_CEFSHARP_BRANCH`" --build-arg CEFSHARP_VERSION=`"$VAR_CEFSHARP_VERSION`" --build-arg CEF_VERSION_STR=`"$VAR_CEF_VERSION_STR`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cefsharp -t cefsharp ."
-TimerNow("CEFSharp compile");
-docker rm cefsharp;
-Start-Sleep -s 3; #sometimes we are too fast, file in use error
-RunProc -proc "docker" -opts "run --name cefsharp cefsharp cmd /C echo CopyVer"
-RunProc -proc "docker" -opts "cp cefsharp:/packages_cefsharp.zip ."
-TimerNow("CEFSharp copy files locally");
+if (! $VAR_CEF_BUILD_ONLY){
+	RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD -f Dockerfile_cef_binary -t cef_binary ."
+	TimerNow("CEF Binary compile");
+	RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg CEFSHARP_BRANCH=`"$VAR_CEFSHARP_BRANCH`" --build-arg CEFSHARP_VERSION=`"$VAR_CEFSHARP_VERSION`" --build-arg CEF_VERSION_STR=`"$VAR_CEF_VERSION_STR`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cefsharp -t cefsharp ."
+	TimerNow("CEFSharp compile");
+	docker rm cefsharp;
+	Start-Sleep -s 3; #sometimes we are too fast, file in use error
+	RunProc -proc "docker" -opts "run --name cefsharp cefsharp cmd /C echo CopyVer"
+	RunProc -proc "docker" -opts "cp cefsharp:/packages_cefsharp.zip ."
+	TimerNow("CEFSharp copy files locally");
+}else{
+	docker rm cef;
+	Start-Sleep -s 3; #sometimes we are too fast, file in use error
+	RunProc -proc "docker" -opts "run --name cef powershell Compress-Archive -Path C:/code/binaries/*.zip -CompressionLevel Fastest -DestinationPath /packages_cef"
+	RunProc -proc "docker" -opts "cp cef:/packages_cef.zip ."
+	
+	TimerNow("CEF copy files locally");
+}
