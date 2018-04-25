@@ -29,24 +29,31 @@ if (! (Test-Path /code/already_patched -PathType Leaf)){
     RunProc -proc "c:/code/chromium/src/cef/cef_create_projects.bat" -errok -opts "";
 }
 Set-Location -Path c:/code/chromium/src;
-$px64 = RunBuild -build_args_add $build_args_add -version "x64";
-$px86 = RunBuild -build_args_add $build_args_add -version "x86";
+$px64 = $null;
+$px86 = $null;
 $MAX_FAILURES=20;
-$x86_fails=0;
-$x64_fails=0;
+$x86_fails=-1;
+$x64_fails=-1;
 #There can be a race conditions we try to patch out the media failures one above
 while ($true){
 	$retry=$false;
-    if ($px86.HasExited -and $px86.ExitCode -ne 0 -and $x86_fails -lt $MAX_FAILURES){
-        $x86_fails++;
-        $px86 = RunBuild -build_args_add $build_args_add -version "x86";
-        $retry=$true;
-    }
-    if ($px64.HasExited -and $px64.ExitCode -ne 0 -and $x64_fails -lt $MAX_FAILURES){
+    if ($px64 -eq $null -or ($px64.HasExited -and $px64.ExitCode -ne 0 -and $x64_fails -lt $MAX_FAILURES)){
         $x64_fails++;
         $px64 = RunBuild -build_args_add $build_args_add -version "x64";
+        if ($env:DUAL_BUILD -ne "1"){
+        	$px64.WaitForExit();
+        	Continue; #fully build one before trying the other
+        }
         $retry=$true;
     }
+    if ($px86 -eq $null -or ($px86.HasExited -and $px86.ExitCode -ne 0 -and $x86_fails -lt $MAX_FAILURES) ){
+        $x86_fails++;
+        $px86 = RunBuild -build_args_add $build_args_add -version "x86";
+        if ($env:DUAL_BUILD -ne "1"){
+        	$px86.WaitForExit();
+        }
+        $retry=$true;
+    }    
     if ($px64.HasExited -and $px86.HasExited -and ! $retry){
     	break;
     }

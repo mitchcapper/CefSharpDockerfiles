@@ -18,10 +18,3 @@ RUN cd c:/code/depot_tools/;update_depot_tools.bat;git checkout .\cipd.ps1;updat
 # Comment out the next step if you want to do it by hand
 ADD functions.ps1 cef_build.ps1 c:/code/
 RUN c:/code/cef_build.ps1
-
-
-
-
-
-
-
