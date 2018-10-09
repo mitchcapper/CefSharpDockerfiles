@@ -13,9 +13,8 @@ if (Test-Path ./versions.ps1 -PathType Leaf){
 }
 Set-StrictMode -version latest;
 $ErrorActionPreference = "Stop";
-
 $global:PERF_FILE = Join-Path $WorkingDir "perf.log";
-if ((Get-MpPreference).DisableRealtimeMonitoring -eq $false){
+if ((Get-MpPreference).DisableRealtimeMonitoring -eq $false){ #as admin you can disable with: Set-MpPreference -DisableRealtimeMonitoring $true
 	Write-Host Warning, windows defender is enabled it will slow things down. -Foreground Red 
 }
 if (! $NoMemoryWarn){
@@ -48,10 +47,25 @@ RunProc -proc "docker" -opts "pull $VAR_BASE_DOCKER_FILE";
 TimerNow("Pull base file");
 RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg BASE_DOCKER_FILE=`"$VAR_BASE_DOCKER_FILE`" -f Dockerfile_vs -t vs ."
 TimerNow("VSBuild");
-RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg DUAL_BUILD=`"$VAR_DUAL_BUILD`" --build-arg GN_DEFINES=`"$VAR_GN_DEFINES`" --build-arg GYP_DEFINES=`"$VAR_GYP_DEFINES`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cef -t cef ."
+if ($VAR_CEF_USE_BINARY_PATH -and $VAR_CEF_USE_BINARY_PATH -ne ""){
+	$docker_file_name="Dockerfile_cef_create_from_binaries";
+
+	$good_hash = Get-FileHash $docker_file_name;
+	$new_path = Join-Path $VAR_CEF_USE_BINARY_PATH $docker_file_name;
+	if ( (Test-Path $new_path -PathType Leaf) -eq $false -or (Get-FileHash $new_path).Hash -ne $good_hash.Hash){
+		Copy $docker_file_name $VAR_CEF_USE_BINARY_PATH;
+	}
+	$loc = Get-Location;
+	Set-Location -Path $VAR_CEF_USE_BINARY_PATH;
+	RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD -f $docker_file_name -t cef ."
+	Set-Location $loc;
+} else {
+	RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg DUAL_BUILD=`"$VAR_DUAL_BUILD`" --build-arg GN_DEFINES=`"$VAR_GN_DEFINES`" --build-arg GYP_DEFINES=`"$VAR_GYP_DEFINES`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cef -t cef ."
+}
+
 TimerNow("CEF Build");
 if (! $VAR_CEF_BUILD_ONLY){
-	RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD -f Dockerfile_cef_binary -t cef_binary ."
+	RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg BINARY_EXT=`"$VAR_CEF_BINARY_EXT`" -f Dockerfile_cef_binary -t cef_binary ."
 	TimerNow("CEF Binary compile");
 	RunProc -proc "docker" -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg CEFSHARP_BRANCH=`"$VAR_CEFSHARP_BRANCH`" --build-arg CEFSHARP_VERSION=`"$VAR_CEFSHARP_VERSION`" --build-arg CEF_VERSION_STR=`"$VAR_CEF_VERSION_STR`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cefsharp -t cefsharp ."
 	TimerNow("CEFSharp compile");

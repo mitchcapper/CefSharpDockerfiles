@@ -1,11 +1,13 @@
-$VAR_CHROME_BRANCH="3239";
-$VAR_CEFSHARP_VERSION="63.0.90";
-$VAR_CEFSHARP_BRANCH="cefsharp/63";
-$VAR_BASE_DOCKER_FILE="microsoft/dotnet-framework:4.7.1-windowsservercore"; #microsoft/dotnet-framework:4.7.1-windowsservercore-1709
+$VAR_CHROME_BRANCH="3396";
+$VAR_CEFSHARP_VERSION="67.0.90";
+$VAR_CEFSHARP_BRANCH="cefsharp/67";
+$VAR_BASE_DOCKER_FILE="microsoft/dotnet-framework:4.7.2-runtime-windowsservercore-1803"; #microsoft/dotnet-framework:4.7.1-windowsservercore-1709
 $VAR_DUAL_BUILD="0"; #set to 1 to build x86 and x64 together, mainly to speed up linking which is single threaded, note may need excess ram.
 $VAR_GN_DEFINES="";
 $VAR_GYP_DEFINES="";
 $VAR_CEF_BUILD_ONLY=$false;#Only build CEF do not build cefsharp or the cef-binary.
+$VAR_CEF_USE_BINARY_PATH=""; #If you want to use existing CEF binaries point this to a local folder where the cef_binary*.zip files are. It will skip the long CEF build step then but still must make the VS container for the cefsharp building.  Note will copy a dockerfile into this folder.
+$VAR_CEF_BINARY_EXT="zip"; #Do not change this off of Zip unless you are supplying your own binaries using $VAR_CEF_USE_BINARY_PATH above, and they have a different extension
 $VAR_CEF_VERSION_STR="auto"; #can set to "3.3239.1723" or similar if you have multiple binaries that Docker_cefsharp might find
 $VAR_HYPERV_MEMORY_ADD="--memory=30g"; #only matters if using HyperV, Note your swap file alone must be this big or able to grow to be this big, 30G is fairly safe for single build will need 60G for dual build.
 if ($false){ #Sample 65 overrides

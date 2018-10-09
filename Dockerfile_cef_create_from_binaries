@@ -1,0 +1,2 @@
+FROM vs
+Add *.zip c:/code/binaries/

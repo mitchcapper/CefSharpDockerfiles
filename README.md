@@ -1,5 +1,4 @@
 # CefSharp Dockerfiles
-
 <!-- MarkdownTOC autolink="true" -->
 
 - [Summary](#summary)
@@ -16,23 +15,24 @@
 	- [Dual Build Flag](#dual-build-flag)
 - [Docker for Windows Caveats](#docker-for-windows-caveats)
 	- [How requirements were determined](#how-requirements-were-determined)
-- [Patching CEFSharp](#patching-cefsharp)
+- [Patching CEF / CEFSharp](#patching-cef--cefsharp)
+- [Building only CEF or CEFSharp](#building-only-cef-or-cefsharp)
 - [General Warnings for build flags:](#general-warnings-for-build-flags)
 - [Additional Resources](#additional-resources)
 
 <!-- /MarkdownTOC -->
 
 ## Summary
-Automated chrome cef building and cefsharp building dockerfiles and scripts.
+Automated chrome cef building and/or cefsharp building dockerfiles and scripts.
 
-While the processes of building CEF and CEFSHARP are not hard they require a very exacting environment and build steps can take a _long_ time so are annoying to repeat.  The goal if this repo is a collection of scripts to automate everything to make it easy for anyone to do.  We are using Docker to run everything in a container as it makes it much easier to reproduce and won't pollute your dev environment with all the pre-reqs.  You can easily tweak the exact versions you want to build, and the build flags.  From creating a VM on your cloud provider of choice (or your own machine) it is about 20 minutes of setup, starting a build script, and just waiting a few hours for it to spit out the compiled binaries.  It has been tested with 63 and 65.
+While the processes of building CEF and CEFSHARP are not hard they require a very exacting environment and build steps can take a _long_ time so are annoying to repeat.  The goal if this repo is a collection of scripts to automate everything to make it easy for anyone to do.  We are using Docker to run everything in a container as it makes it much easier to reproduce and won't pollute your dev environment with all the pre-reqs.  You can easily tweak the exact versions you want to build, and the build flags.  From creating a VM on your cloud provider of choice (or your own machine) it is about 20 minutes of setup, starting a build script, and just waiting a few hours for it to spit out the compiled binaries.  It has been tested with 63, 65, and 67 but would likely work for any modern chrome build without changes (in most cases).
 
 
 ## Thanks
 Thanks to the fantastic CEFSharp team, especially @amaitland who works insanely hard on the open source project.  @perlun provided some great direction on the Windows building and was also a huge help.  Please support CEFSharp if you use it, even if you do a small monthly donation of $10 or $25 it can be a big help: https://salt.bountysource.com/teams/cefsharp
 
 ## Quick Start
-If using Azure create a F32_v2 VM with the image "Windows Server 2016 Datacenter - with Containers", if using another machine just install docker for windows (make sure you have 40GB of ram between actual ram + page file). Set the [Docker For Windows Config File](#docker-for-windows-config-file) changing the path to the folder to store data on (suggested local temp drive) and restart docker service.   Copy the items from this repo into a folder. Copy the versions_src.ps1 to versions.ps1 and change the variables to what you want: for example ```$VAR_GN_DEFINES="is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome";$VAR_DUAL_BUILD="1";```. Only use DUAL_BUILD if you have 60 gigs of ram or more, otherwise leave it at 0 and the build will take an extra 20-40 minutes.  If you are building on a windows 1709 machine (10.0.16299) change VAR_BASE_DOCKER_FILE to the 1709 image commented out next to it. Run ./build.ps1 and it should build the packages. 
+If using Azure create a F32_v2 VM with the image "Windows Server 2016 Datacenter - with Containers", if using another machine just install docker for windows (make sure you have 20GB (40GB for chrome < 65) of ram between actual ram + page file). Set the [Docker For Windows Config File](#docker-for-windows-config-file) changing the path to the folder to store data on (suggested local temp drive) and restart docker service.   Copy the items from this repo into a folder. Copy the versions_src.ps1 to versions.ps1 and change the variables to what you want: for example ```$VAR_GN_DEFINES="is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome";$VAR_DUAL_BUILD="1";```. Only use DUAL_BUILD if you have 30 gigs of ram or more, otherwise leave it at 0 and the build will take an extra 20-40 minutes.  If you are building in process isolation mode (recommended) make sure the base image file is the same build as your actual OS.  IE if you are on windows Fall 2018 release 1803 (10.0.17134) change VAR_BASE_DOCKER_FILE to the 1803 image. Run ./build.ps1 and it should build the packages. 
 
 
 ## Caveats
@@ -43,9 +43,9 @@ In part we use the latest version of several installers/build tools if they chan
 Window 10 Client (Pro) by default with docker uses HyperV isolation, this mode is very non performant vs process isolation mode.
 
 ## Requirements
-The following requirements are for chrome 63(and more or less 65) and the current vs_2017 installer, they may change over time.  Compiling is largely CPU bound but linking is largely IO bound.
+The following requirements are for chrome 63(and more or less 65 and 67) and the current vs_2017 installer, they may change over time.  Compiling is largely CPU bound but linking is largely IO bound.
 
-- At least 32GB of ram dedicated to this would recommend 40GB total with page file to make sure you don't run out.  You can have any amount of that 32/40GB as a page file, just beware the less actual ram the much slower linking will be.
+- At least 20GB of ram dedicated to this would recommend 30GB total with page file to make sure you don't run out (older builds like 63 were 32GB with 40GB total).  You can have any amount of that 20/30GB as a page file, just beware the less actual ram the much slower linking will be.
 - At least 250GB of space.
 
 
@@ -72,7 +72,7 @@ You will want a docker configuration with options similar to this. Note if you a
 ```
 ### Azure Specifics
 If you are new to Azure it is pretty easy to get started and they will give you $200 for your first month free so there will be no costs.
-An Azure F32 v2 is pretty good, its only 256 gigs of space but that should be ok.  ~$2.72 an hour in WestUS2 running the latest windows image. You can use the prebuilt image "Windows Server 2016 Datacenter - with Containers" or a newer one if it exists.  I would recommend one with a full shell (ie 1709 with containers is built on core so no explorer etc).  Use the local SSD as the docker storage folder (note this will likely get wiped if you de-allocate the machine so do the entire build at once).  You could potentially hook up a huge number of disks in raid 0 configuration to get somewhat decent speed that way.
+An Azure F32 v2 is pretty good, its only 256 gigs of space but that should be ok.  ~$2.72 an hour in WestUS2 running the latest windows image. You can use the prebuilt image "Windows Server 2016 Datacenter - with Containers" or a newer one if it exists.  You can either use one with a full shipp (pre 1709) or one of the newer builds like "Windows Server 2016 Datacenter - with Containers 1803".  Without a full shell you won't have explorer and remote desktop will just open a command prompt. You can launch notepad and manage it all through there (or use remote PS) but a full shell is easier for some people.  Use the local SSD as the docker storage folder (note this will likely get wiped if you de-allocate the machine so do the entire build at once).  You could potentially hook up a huge number of disks in raid 0 configuration to get somewhat decent speed that way.
 Create a new resource, search for the prebuilt image noted above.  You do not need managed disks, assign a random user/password, new network/storage/etc is all fine.  For the size make sure you select one of the F series (F32 recommended). It won't show by default, leave HD type set to SSD put Min CPU's at 32 and Ram at 64 then hit "View all".
 
 I suggest auto-shutdown to make sure you don't leave it running.
@@ -86,7 +86,7 @@ With the Azure F32 v2 host above the total estimated build time is about 2.1 hou
 - cefsharp: 4 minutes
 
 ### HyperV Isolation (for server or Windows 10 client) Mode
-HyperV isolation mode should be avioded if possible.  It is slower, and more prone to fail.  For Windows 10 client there is not a **legal** alternative.  NOTE: If you are not using process isolation mode you WILL need to set ```$VAR_HYPERV_MEMORY_ADD``` and make sure your page file is properly sized (recommend a page file at least a few gigs bigger as it needs that amount of FREE page file space).  It will set the memory on every docker build step to up the default memory limit.  Technically this is primarily needed in the CEF build step.   NOTE if you stop docker during a build with HyperV it does not properly kill off the hyperV container restart docker to fix this.
+HyperV isolation mode should be avoided if possible.  It is slower, and more prone to fail.  For Windows 10 client there is not a **legal** alternative.  NOTE: If you are not using process isolation mode you WILL need to set ```$VAR_HYPERV_MEMORY_ADD``` and make sure your page file is properly sized (recommend a page file at least a few gigs bigger as it needs that amount of FREE page file space).  It will set the memory on every docker build step to up the default memory limit.  Technically this is primarily needed in the CEF build step.   NOTE if you stop docker during a build with HyperV it does not properly kill off the hyperV container restart docker to fix this.
 
 ## Build Process
 Once docker is setup and running copy this repo to a local folder.  Copy versions_src.ps1 to versions.ps1 and change the version strings to match what you want.  NOTE BASE_DOCKER_FILE must match the same kernel as the host machine IF you are using process isolation mode.  This means you cannot use the 1709 image on an older host and you can use and older image on a 1709 host.  Either base file is fine however to use just match it to the host.  
@@ -107,7 +107,7 @@ To be safer you can run the biggest build command by hand. The hardest (longest)
 	# Allow partial needed if not building debug builds, make sure to run it when done or run the cef_build last few commands to create the archive with the result and to clean up the workspace of the source files.
 ```
 ### Dual Build Flag
-Note the DUAL_BUILD may speed up builds by running x86 and x64 builds concurrently (each with 1/2 as many threads).  This is primarily useful during linking.  Linking is largely single threaded and takes awhile and is single thread CPU bound (given enough IO). The main issue is memory usage.  If both linking steps run at once you may need nearly 50GB of memory at once (in worst case).  It would be better if they linked at slightly separate times but as every compute system was different there did not seem to be a good way to determine how long to sleep for to make it most efficient.
+Note the DUAL_BUILD may speed up builds by running x86 and x64 builds concurrently (each with 1/2 as many threads).  This is primarily useful during linking.  Linking is largely single threaded and takes awhile and is single thread CPU bound (given enough IO). The main issue is memory usage.  If both linking steps run at once you may need nearly 30GB of memory at once (in worst case older builds would use up to 50GB).  It would be better if they linked at slightly separate times but as every compute system was different there did not seem to be a good way to determine how long to sleep for to make it most efficient.
 
 
 ## Docker for Windows Caveats
@@ -120,10 +120,13 @@ Note the DUAL_BUILD may speed up builds by running x86 and x64 builds concurrent
 
 ### How requirements were determined
 - Space: windows base ~6 gigs, ~9 gigs for the finished visual studio build image.  Another 20 or so when done with cefsharp.   Chrome will take 200 gigs or so during build for the VHD, we remove the bulk of this before it finishes though.  So for docker storage I would recommend 16 + 200 = ~ 220 gigs of space + some buffer so maybe 250GB. 
-- Memory: For Chrome 63 bare minimum memory requirements (actual + page file) for JUST the linker is x86: 24.2 GB x64: 25.7 GB. I would make sure you have atleast 32 gigs of ram to be safe with OS and other overhead.
+- Memory: For Chrome 63 bare minimum memory requirements (actual + page file) for JUST the linker is x86: 24.2 GB x64: 25.7 GB. For chrome 67 however the memory requirements are much lower, only 13GB for linking! I would make sure you have at least 24 gigs of ram to be safe with OS and other overhead, for older versions at least 32GB.
 
-## Patching CEFSharp
-- If so desired you can patch CEFSharp relatively easily. Place a file named cefsharp_patch_XXXX.diff to the build folder. You can change XXX to whatever you want, and even have multiple if desired. It will automatically be applied with git apply.  This works for several different patch formats (anything git apply will take wil lwork).
+## Patching CEF / CEFSharp
+- If so desired you can patch CEF or CEFSharp relatively easily. Place a file named cef_patch_XXXX.diff or cefsharp_patch_XXXX.diff to the build folder. You can change XXX to whatever you want, and even have multiple if desired. It will automatically be applied with git apply.  This works for several different patch formats (anything git apply will take will work).
+
+## Building only CEF or CEFSharp
+- You can build just CEF and not cefsharp by setting $VAR_CEF_BUILD_ONLY to $true in the versions.ps1.   If you want to only build CEFSharp you will need to provide the CEF binaries (either you built or official ones from: http://opensource.spotify.com/cefbuilds/index.html). You should download both 32 bit and 64 bit standard distribution versions and put them in a local folder.  Then edit versions.ps1 and set $VAR_CEF_USE_BINARY_PATH to the local folders. You should then set $VAR_CEF_BINARY_EXT to the extension of them (ie zip or tar.bz2 for example).
 
 ## General Warnings for build flags:
 - Cannot do component builds as it will not work for other items

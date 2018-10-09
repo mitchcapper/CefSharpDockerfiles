@@ -1,0 +1,13 @@
+{
+  "registry-mirrors": [],
+  "insecure-registries": [],
+  "debug": true,
+  "experimental": false,
+  "exec-opts": [
+    "isolation=process"
+  ],
+  "data-root": "d:/docker_data",
+  "storage-opts": [
+    "size=400G"
+  ]
+}

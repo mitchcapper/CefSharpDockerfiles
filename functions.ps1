@@ -4,6 +4,7 @@ Function RunProc{
     [CmdletBinding()]
     Param($proc,$opts,
     [switch] $errok,
+    [switch] $dry_run,
     [switch] $no_wait,
     [ValidateSet("verbose","host","none")] 
 	[String] $verbose_mode="host"
@@ -27,6 +28,9 @@ Function RunProc{
     $pinfo.Arguments = $opts;
     $p = New-Object System.Diagnostics.Process;
     $p.StartInfo = $pinfo;
+    if ($dry_run){
+    	return $null;
+    }
     $p.Start() | Out-Null;
     if ($no_wait){
     	return $p;
@@ -64,7 +68,7 @@ $global:PERF_FILE="";
 Function TimerNow($name){
 	$now = Get-Date;
 	$diff = ($now -  $global:last_time).TotalSeconds.ToString("0.0");
-	$str = "$(Get-Date) $name took $diff";
+	$str = "$(Get-Date) $name took $diff secs";
 	Write-Host $str  -ForegroundColor Green;
 	if ($PERF_FILE -ne ""){
 		$str | out -FilePath $PERF_FILE -Append;

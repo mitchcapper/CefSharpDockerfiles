@@ -19,9 +19,13 @@ Function RunBuild{
 RunProc -proc "c:/code/depot_tools/python.bat" -errok -opts "c:/code/automate/automate-git.py --download-dir=c:/code --branch=$env:CHROME_BRANCH --no-build --no-debug-build --no-distrib";
 Set-Location -Path c:/code/chromium/src/cef;
 if (! (Test-Path /code/already_patched -PathType Leaf)){
-    "1" > /code/already_patched
-    if ($env:GN_DEFINES -contains "proprietary_codecs"){
+#    "1" > /code/already_patched
+    copy c:/code/*.ps1 .
+    copy c:/code/*.diff .
+    ./cef_patch.ps1
+    if ($env:GN_DEFINES -contains "proprietary_codecs" -and $env:CHROME_BRANCH -lt 3396){
     	#I was unable to generate a patch that worked across branches so manually patching the file per: https://bitbucket.org/chromiumembedded/cef/issues/2352/windows-3239-build-fails-due-to-missing
+    	#this is only needed for versions < 3396
     	$str = [system.io.file]::ReadAllText("c:/code/chromium/src/cef/BUILD.gn");
     	$str = $str -replace "deps = \[\s+`"//components/crash/core/common`",", "deps = [`n      `"//components/crash/core/common`",`n      `"//media:media_features`",";
     	$str | Out-File "c:/code/chromium/src/cef/BUILD.gn" -Encoding ASCII;

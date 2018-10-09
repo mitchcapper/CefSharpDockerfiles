@@ -1,4 +1,5 @@
 versions.ps1
 .dockerignore
 cefsharp_patch_*.diff
+cef_patch_*.diff
 *.zip
