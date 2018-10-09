@@ -80,7 +80,9 @@ Create a new resource, search for the prebuilt image noted above.  You do not ne
 I suggest auto-shutdown to make sure you don't leave it running.
 
 #### Azure Auto Create Scripts
-If you have an azure account already created you can use the az_create.ps1 script to automatically setup the VM for you.  It will create everything under a new "CEFTest" resource group to make cleanup at the end easy. You can adjust the settings at the top if desired but really the only important options you pass as options to it.  It will setup the VM and enable remote powershell to make the process very easy. Just launch powershell (or type powershell into the run box in windows).  If the first time using powershell with azure you will need to install the tools for azure: ```Install-Module -Name AzureRM -Scope CurrentUser```.  Next change to the folder with all the CefSharpDockerfiles (cd c:\downloads\CefSharpDockerfiles for example).
+If you have an azure account already created you can use the az_create.ps1 script to automatically setup the VM for you.  It will create a Standard_F32s_v2	VM by default but this is 32 cpu's.  New Azure accounts need to file a support request to increase CPU quota beyond 10.  These are often approved within minutes but if you don't want to do so you can edit az_create.ps1 and change the size to something like a Standard_F8s_v2. It will take longer to build but your cost will be roughly the same total cost.
+
+It will create everything under a new "CEFTest" resource group to make cleanup at the end easy. You can adjust the settings at the top if desired but really the only important options you pass as options to it.  It will setup the VM and enable remote powershell to make the process very easy. Just launch powershell (or type powershell into the run box in windows).  If the first time using powershell with azure you will need to install the tools for azure: ```Install-Module -Name AzureRM -Scope CurrentUser```.  Next change to the folder with all the CefSharpDockerfiles (cd c:\downloads\CefSharpDockerfiles for example).
 
 Login with your azure credentials first:
 ```Connect-AzureRmAccount```
