@@ -126,7 +126,8 @@ Note the DUAL_BUILD may speed up builds by running x86 and x64 builds concurrent
 - If so desired you can patch CEF or CEFSharp relatively easily. Place a file named cef_patch_XXXX.diff or cefsharp_patch_XXXX.diff to the build folder. You can change XXX to whatever you want, and even have multiple if desired. It will automatically be applied with git apply.  This works for several different patch formats (anything git apply will take will work).
 
 ## Building only CEF or CEFSharp
-- You can build just CEF and not cefsharp by setting $VAR_CEF_BUILD_ONLY to $true in the versions.ps1.   If you want to only build CEFSharp you will need to provide the CEF binaries (either you built or official ones from: http://opensource.spotify.com/cefbuilds/index.html). You should download both 32 bit and 64 bit standard distribution versions and put them in a local folder.  Then edit versions.ps1 and set $VAR_CEF_USE_BINARY_PATH to the local folders. You should then set $VAR_CEF_BINARY_EXT to the extension of them (ie zip or tar.bz2 for example).
+- You can build just CEF and not cefsharp by setting $VAR_CEF_BUILD_ONLY to $true in the versions.ps1. 
+- If you want to only build CEFSharp you will need to provide the CEF binaries (either you built or official ones from: http://opensource.spotify.com/cefbuilds/index.html). You should download both 32 bit and 64 bit standard distribution versions and put them in a local folder.  Then edit versions.ps1 and set $VAR_CEF_USE_BINARY_PATH to the local folders. You should then set $VAR_CEF_BINARY_EXT to the extension of them (ie zip or tar.bz2 for example).
 
 ## General Warnings for build flags:
 - Cannot do component builds as it will not work for other items
