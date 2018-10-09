@@ -13,5 +13,6 @@ RUN Expand-Archive c:\code\master.zip -DestinationPath "C:\code\cef-binary";
 WORKDIR /code/cef-binary/cef-binary-master/
 RUN $env:Path = 'c:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\;' + $env:Path;setx /M PATH $env:Path;
 RUN 'New-ItemProperty -Path Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\MSBuild\ToolsVersions\4.0 -Name VCTargetsPath -PropertyType String -Value "`$`(MSBuildExtensionsPath32)\Microsoft.Cpp\v4.0\"'
+ARG BINARY_EXT="zip"
 RUN ./build.ps1 -DownloadBinary local -CefBinaryDir /code/binaries/ -CefVersion auto -NoDebugBuild -Extension zip -Target vs2017;./build.ps1 -DownloadBinary local -CefBinaryDir /code/binaries/ -CefVersion auto -NoDebugBuild -Extension $env:BINARY_EXT -Target nupkg-only;
 RUN Compress-Archive -Path NuGet -CompressionLevel Fastest -DestinationPath C:\packages

@@ -9,6 +9,7 @@
 - [Server Setup](#server-setup)
 	- [Docker For Windows Config File](#docker-for-windows-config-file)
 	- [Azure Specifics](#azure-specifics)
+		- [Azure Auto Create Scripts](#azure-auto-create-scripts)
 	- [Estimated time requirements](#estimated-time-requirements)
 	- [HyperV Isolation \(for server or Windows 10 client\) Mode](#hyperv-isolation-for-server-or-windows-10-client-mode)
 - [Build Process](#build-process)
@@ -32,6 +33,7 @@ While the processes of building CEF and CEFSHARP are not hard they require a ver
 Thanks to the fantastic CEFSharp team, especially @amaitland who works insanely hard on the open source project.  @perlun provided some great direction on the Windows building and was also a huge help.  Please support CEFSharp if you use it, even if you do a small monthly donation of $10 or $25 it can be a big help: https://salt.bountysource.com/teams/cefsharp
 
 ## Quick Start
+For a super fast start look at the [azure auto provision option below](#azure-auto-create-scripts).  As long as you have an azure account created it can create the entire setup and build in a few commands.
 If using Azure create a F32_v2 VM with the image "Windows Server 2016 Datacenter - with Containers", if using another machine just install docker for windows (make sure you have 20GB (40GB for chrome < 65) of ram between actual ram + page file). Set the [Docker For Windows Config File](#docker-for-windows-config-file) changing the path to the folder to store data on (suggested local temp drive) and restart docker service.   Copy the items from this repo into a folder. Copy the versions_src.ps1 to versions.ps1 and change the variables to what you want: for example ```$VAR_GN_DEFINES="is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome";$VAR_DUAL_BUILD="1";```. Only use DUAL_BUILD if you have 30 gigs of ram or more, otherwise leave it at 0 and the build will take an extra 20-40 minutes.  If you are building in process isolation mode (recommended) make sure the base image file is the same build as your actual OS.  IE if you are on windows Fall 2018 release 1803 (10.0.17134) change VAR_BASE_DOCKER_FILE to the 1803 image. Run ./build.ps1 and it should build the packages. 
 
 
@@ -71,11 +73,66 @@ You will want a docker configuration with options similar to this. Note if you a
 }
 ```
 ### Azure Specifics
-If you are new to Azure it is pretty easy to get started and they will give you $200 for your first month free so there will be no costs.
-An Azure F32 v2 is pretty good, its only 256 gigs of space but that should be ok.  ~$2.72 an hour in WestUS2 running the latest windows image. You can use the prebuilt image "Windows Server 2016 Datacenter - with Containers" or a newer one if it exists.  You can either use one with a full shipp (pre 1709) or one of the newer builds like "Windows Server 2016 Datacenter - with Containers 1803".  Without a full shell you won't have explorer and remote desktop will just open a command prompt. You can launch notepad and manage it all through there (or use remote PS) but a full shell is easier for some people.  Use the local SSD as the docker storage folder (note this will likely get wiped if you de-allocate the machine so do the entire build at once).  You could potentially hook up a huge number of disks in raid 0 configuration to get somewhat decent speed that way.
+If you are new to Azure it is pretty easy to get started and they will give you $200 for your first month free so there will be no costs. Below we even have an auto deploy script if you prefer not to do it by hand.
+An Azure F32 v2 is pretty good, its only 256 gigs of space but that should be ok.  ~$2.72 an hour in WestUS2 running the latest windows image. You can use the prebuilt image "Windows Server 2016 Datacenter - with Containers" or a newer one if it exists.  You can either use one with a full shell (pre 1709) or one of the newer builds like "Windows Server 2016 Datacenter - with Containers 1803".  Without a full shell you won't have explorer and remote desktop will just open a command prompt. You can launch notepad and manage it all through there (or use remote PS) but a full shell is easier for some people.  Use the local SSD as the docker storage folder (note this will likely get wiped if you de-allocate the machine so do the entire build at once).  You could potentially hook up a huge number of disks in raid 0 configuration to get somewhat decent speed that way.
 Create a new resource, search for the prebuilt image noted above.  You do not need managed disks, assign a random user/password, new network/storage/etc is all fine.  For the size make sure you select one of the F series (F32 recommended). It won't show by default, leave HD type set to SSD put Min CPU's at 32 and Ram at 64 then hit "View all".
 
 I suggest auto-shutdown to make sure you don't leave it running.
+
+#### Azure Auto Create Scripts
+If you have an azure account already created you can use the az_create.ps1 script to automatically setup the VM for you.  It will create everything under a new "CEFTest" resource group to make cleanup at the end easy. You can adjust the settings at the top if desired but really the only important options you pass as options to it.  It will setup the VM and enable remote powershell to make the process very easy. Just launch powershell (or type powershell into the run box in windows).  If the first time using powershell with azure you will need to install the tools for azure: ```Install-Module -Name AzureRM -Scope CurrentUser```.  Next change to the folder with all the CefSharpDockerfiles (cd c:\downloads\CefSharpDockerfiles for example).
+
+Login with your azure credentials first:
+```Connect-AzureRmAccount```
+
+Then if you have multiple subscriptions set the one you want with:
+```Set-AzureRmContext -SubscriptionName "My Subscription"```
+
+Next run this and enter a new username and password to configure the new VM with:
+```$cred = Get-Credential -Message "Enter user and password for remote machine admin"```
+
+Next we will run the deploy script, by default it can configure the machine to automatically shutdown at 11:30 PDT if you provide an email it will do this and notify you.  If you do not you need to manually turn the machine off when done. You can adjust time and such in the az_create.ps1 at the top (along with some other items but likely you do not need to adjust them):
+```./az_create.ps1 -admin_creds $cred -shutdown_email "john@gmail.com"```
+
+It should print out when done Public IP: 123.123.123.123
+
+Next set this in a variable $IP_ADDY like:
+```$IP_ADDY = "123.123.123.123"```
+
+**Note we are disabling the security checks in the remote powershell session.  This could make you vulnerable to MITM attacks if on an unsafe network.**
+
+Next create the remote powershell session and copy the files over by running:
+```
+$so = New-PsSessionOption -SkipCACheck -SkipCNCheck -SkipRevocationCheck;
+$remote = New-PSSession -ComputerName $IP_ADDY -UseSSL -SessionOption $so -Credential $cred;
+
+Invoke-Command -Session $remote $_ -ScriptBlock { mkdir C:/CefSharpDockerfiles; }
+Get-ChildItem -Path "./" | Copy-Item -ToSession $remote -Destination "C:/CefSharpDockerfiles/"
+
+Copy-Item -ToSession $remote daemon.json -Destination "c:/ProgramData/docker/config/daemon.json";
+Invoke-Command -Session $remote $_ -ScriptBlock { Restart-Service Docker; }
+```
+
+Next we will "enter" the remote machine via powershell:
+```
+Enter-PSSession $remote
+```
+
+Then you should see your terminal is like ```[123.123.123.123]: PS c:\>``` showing you are on the remote machine.
+
+Finally we start the build:
+```
+cd C:/CefSharpDockerfiles
+./build.ps1
+```
+
+When done exit out the remote session by typing: ```exit```
+
+Finally we copy the resulting files locally:
+```Copy-Item -FromSession $remote "c:/CefSharpDockerfiles/packages_cefsharp.zip" -Destination ".";```
+
+You could also expose the docker server to the internet and use remote docker commands rather than running the powershell remotely.  When done you can delete the entire CEFTest resource group from the azure portal as well to clean everything up.
+
 
 ### Estimated time requirements
 With the Azure F32 v2 host above the total estimated build time is about 2.1 hours (~$6 on azure). Machines are nice 600MB/sec read/write to the local disk.  The time could be cut close to in half if you used a F64 v2 VM, but your cost will remain the same (as its twice the price for twice the power).  Note it can vary somewhat dramatically for the not cef build steps based on the luck of the draw (but the cef build is most of the build time).  It seems local IO depending on what physical host it is spun up on can cause 30-50% performance fluxes.  Most of the build steps make efficient use of the machine however: The git cloning is not very efficient. It is 30 minutes of the cef build time below. It doesn't quite max out network or IO. The linking stage is also not super efficient see the DUAL_BUILD flag below to help with that. Linking will take 20+ minutes per platform (40 total unless run concurrently).  Here are the individual build/commit times:

@@ -3,3 +3,4 @@ versions.ps1
 cefsharp_patch_*.diff
 cef_patch_*.diff
 *.zip
+*.pfx
