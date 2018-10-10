@@ -103,16 +103,14 @@ Next set this in a variable $IP_ADDY like:
 
 **Note we are disabling the security checks in the remote powershell session.  This could make you vulnerable to MITM attacks if on an unsafe network.**
 
-Next create the remote powershell session and copy the files over by running:
+Next create the remote powershell session and copy the files over, and disable anti virus real time scanning (slows down compiling significantly):
 ```
 $so = New-PsSessionOption -SkipCACheck -SkipCNCheck -SkipRevocationCheck;
 $remote = New-PSSession -ComputerName $IP_ADDY -UseSSL -SessionOption $so -Credential $cred;
 
-Invoke-Command -Session $remote $_ -ScriptBlock { mkdir C:/CefSharpDockerfiles; }
 Get-ChildItem -Path "./" | Copy-Item -ToSession $remote -Destination "C:/CefSharpDockerfiles/"
-
 Copy-Item -ToSession $remote daemon.json -Destination "c:/ProgramData/docker/config/daemon.json";
-Invoke-Command -Session $remote $_ -ScriptBlock { Restart-Service Docker; }
+Invoke-Command -Session $remote -ScriptBlock { Restart-Service Docker;Set-MpPreference -DisableRealtimeMonitoring $true; }
 ```
 
 Next we will "enter" the remote machine via powershell:
