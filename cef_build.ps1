@@ -5,7 +5,7 @@ $WorkingDir = split-path -parent $MyInvocation.MyCommand.Definition;
 
 $build_args_add = "";
 if ($env:DUAL_BUILD -eq "1"){
-	$cores = (Get-WmiObject -class Win32_processor).NumberOfLogicalProcessors + 2; #ninja defaults to number of procs + 2 
+	$cores = $env:NUMBER_OF_PROCESSORS + 2; #ninja defaults to number of procs + 2 
 	if ($cores % 2 -eq 1){
 		$cores +=1;
 	}
