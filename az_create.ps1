@@ -32,7 +32,7 @@ Function WriteException($exp){
 
 try{
 
-Write-Host "RANDOM_STR FOR THIS SESSION: $RANDOM_STR"
+Write-Host "RANDOM_STR FOR THIS SESSION: $rand_str"
 $CERT_PASS_SEC=ConvertTo-SecureString -AsPlainText -Force $CERT_PASS
 $cred = $admin_creds
 #Connect-AzureRmAccount
