@@ -2,18 +2,25 @@
 Param(
 	[Parameter(Mandatory=$true)]
 	[PSCredential] $admin_creds,
-	[String] $shutdown_email
+	[String] $shutdown_email,
+	[String] $RESOURCE_GROUP="CEFTest",
+	[String] $LOCATION="West US 2",
+	[String] $MACHINE_SIZE="Standard_F72s_v2",
+	[String] $SHUTDOWN_TIME="23:30",
+	[String] $RANDOM_STR=""
+
 )	
 Set-StrictMode -version latest
 $ErrorActionPreference = "Stop";
-$VAULT_NAME = "CEFVault"
-$RESOURCE_GROUP = "CEFTest"
-$LOCATION="West US 2"
-$MACHINE_SIZE="Standard_F32s_v2"
+$rand_str = $RANDOM_STR;
+if (! $rand_str){
+	$rand_str = -join ((97..122) | Get-Random -Count 5 | % {[char]$_});
+}
+$VAULT_NAME = "CEFVault-" + $rand_str;
 $SECRET_NAME="CEFPSCertSecret"
 $CERT_PASS="dummy"
-$SHUTDOWN_TIME="23:30";
 $SHUTDOWN_TIMEZONE="Pacific Standard Time";
+$DIAG_STORAGE_ACT="estdiag86" + $rand_str;
 Function WriteException($exp){
 	write-host "Caught an exception:" -ForegroundColor Yellow -NoNewline
 	write-host " $($exp.Exception.Message)" -ForegroundColor Red
@@ -25,7 +32,7 @@ Function WriteException($exp){
 
 try{
 
-
+Write-Host "RANDOM_STR FOR THIS SESSION: $RANDOM_STR"
 $CERT_PASS_SEC=ConvertTo-SecureString -AsPlainText -Force $CERT_PASS
 $cred = $admin_creds
 #Connect-AzureRmAccount
@@ -49,7 +56,7 @@ else{
 
 $vault = Get-AzureRmKeyVault -VaultName $VAULT_NAME -ErrorAction SilentlyContinue
 if (! $vault){
-	Write-Host "Creating key vault to store remote powershell certificate in"
+	Write-Host "Creating key vault to store remote powershell certificate in: $VAULT_NAME"
 	New-AzureRmKeyVault -VaultName $VAULT_NAME -ResourceGroupName $RESOURCE_GROUP -Location $LOCATION -EnabledForDeployment -EnabledForTemplateDeployment | Out-Null
 	$vault = Get-AzureRmKeyVault -VaultName $VAULT_NAME
 }else{
@@ -100,6 +107,8 @@ $hashtable.PsRemoteSecretUrl = $secretURL;
 $hashtable.adminUsername = $cred.UserName;
 $hashtable.adminPassword = $cred.Password;
 $hashtable.location = $LOCATION;
+$hashtable.diagnosticsStorageAccountName = $DIAG_STORAGE_ACT;
+$hashtable.diagnosticsStorageAccountId = "Microsoft.Storage/storageAccounts/" + $DIAG_STORAGE_ACT;
 $hashtable.virtualMachineSize = $MACHINE_SIZE;
 $hashtable.autoShutdownTimeZone = $SHUTDOWN_TIMEZONE;
 $hashtable.autoShutdownTime = $SHUTDOWN_TIME;

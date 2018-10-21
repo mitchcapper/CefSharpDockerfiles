@@ -41,12 +41,6 @@
         "osDiskType": {
             "value": "Premium_LRS"
         },
-        "diagnosticsStorageAccountName": {
-            "value": "estdiag862"
-        },
-        "diagnosticsStorageAccountId": {
-            "value": "Microsoft.Storage/storageAccounts/estdiag862"
-        },
         "diagnosticsStorageAccountType": {
             "value": "Standard_LRS"
         },
