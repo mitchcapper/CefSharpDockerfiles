@@ -5,7 +5,7 @@ Param(
 	[String] $shutdown_email,
 	[String] $RESOURCE_GROUP="CEFTest",
 	[String] $LOCATION="West US 2",
-	[String] $MACHINE_SIZE="Standard_F72s_v2",
+	[String] $MACHINE_SIZE="Standard_F32s_v2",
 	[String] $SHUTDOWN_TIME="23:30",
 	[String] $RANDOM_STR=""
 

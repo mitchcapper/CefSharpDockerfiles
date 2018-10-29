@@ -1,4 +1,4 @@
-ARG BASE_DOCKER_FILE="microsoft/dotnet-framework:4.7.1-windowsservercore-1709"
+ARG BASE_DOCKER_FILE="microsoft/dotnet-framework:4.7.2-runtime-windowsservercore-1803"
 FROM $BASE_DOCKER_FILE
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 

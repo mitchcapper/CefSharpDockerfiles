@@ -4,8 +4,8 @@ $WorkingDir = split-path -parent $MyInvocation.MyCommand.Definition;
 . (Join-Path $WorkingDir 'functions.ps1')
 
 $build_args_add = "";
-if ($env:DUAL_BUILD -eq "1"){
-	$cores = $env:NUMBER_OF_PROCESSORS + 2; #ninja defaults to number of procs + 2 
+if ($env:DUAL_BUILD -eq "1" -and $env:CHROME_BRANCH -lt 3396){ #newer builds can take a good bit more time linking just let run with double the proc count
+	$cores = ([int]$env:NUMBER_OF_PROCESSORS) + 2; #ninja defaults to number of procs + 2 
 	if ($cores % 2 -eq 1){
 		$cores +=1;
 	}
