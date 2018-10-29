@@ -1,2 +1,3 @@
 FROM vs
-Add *.zip c:/code/binaries/
+ARG BINARY_EXT="zip"
+COPY *.$BINARY_EXT c:/code/binaries/

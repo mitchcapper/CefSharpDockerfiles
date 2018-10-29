@@ -75,3 +75,11 @@ Function TimerNow($name){
 	}
 	$global:last_time = $now;
 }
+Function WriteException($exp){
+	write-host "Caught an exception:" -ForegroundColor Yellow -NoNewline
+	write-host " $($exp.Exception.Message)" -ForegroundColor Red
+	write-host "`tException Type: $($exp.Exception.GetType().FullName)"
+	$stack = $exp.ScriptStackTrace;
+	$stack = $stack.replace("`n","`n`t")
+	write-host "`tStack Trace: $stack"
+}

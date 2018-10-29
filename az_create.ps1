@@ -9,7 +9,10 @@ Param(
 	[String] $SHUTDOWN_TIME="23:30",
 	[String] $RANDOM_STR=""
 
-)	
+)
+$WorkingDir = split-path -parent $MyInvocation.MyCommand.Definition;
+. (Join-Path $WorkingDir 'functions.ps1')
+
 Set-StrictMode -version latest
 $ErrorActionPreference = "Stop";
 $rand_str = $RANDOM_STR;
@@ -21,14 +24,7 @@ $SECRET_NAME="CEFPSCertSecret"
 $CERT_PASS="dummy"
 $SHUTDOWN_TIMEZONE="Pacific Standard Time";
 $DIAG_STORAGE_ACT="estdiag86" + $rand_str;
-Function WriteException($exp){
-	write-host "Caught an exception:" -ForegroundColor Yellow -NoNewline
-	write-host " $($exp.Exception.Message)" -ForegroundColor Red
-	write-host "`tException Type: $($exp.Exception.GetType().FullName)"
-	$stack = $exp.ScriptStackTrace;
-	$stack = $stack.replace("`n","`n`t")
-	write-host "`tStack Trace: $stack"
-}
+
 
 try{
 
