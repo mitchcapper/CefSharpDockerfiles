@@ -18,6 +18,7 @@
 	- [How requirements were determined](#how-requirements-were-determined)
 - [Patching CEF / CEFSharp](#patching-cef--cefsharp)
 - [Building only CEF or CEFSharp](#building-only-cef-or-cefsharp)
+	- [Sample of building only CEFSharp](#sample-of-building-only-cefsharp)
 - [General Warnings for build flags:](#general-warnings-for-build-flags)
 - [Additional Resources](#additional-resources)
 
@@ -185,6 +186,12 @@ Note the DUAL_BUILD may speed up builds by running x86 and x64 builds concurrent
 ## Building only CEF or CEFSharp
 - You can build just CEF and not cefsharp by setting $VAR_CEF_BUILD_ONLY to $true in the versions.ps1. 
 - If you want to only build CEFSharp you will need to provide the CEF binaries (either you built or official ones from: http://opensource.spotify.com/cefbuilds/index.html). You should download both 32 bit and 64 bit standard distribution versions and put them in a local folder.  Then edit versions.ps1 and set $VAR_CEF_USE_BINARY_PATH to the local folders. You should then set $VAR_CEF_BINARY_EXT to the extension of them (ie zip or tar.bz2 for example).
+
+### Sample of building only CEFSharp
+- Download the binary files to a local folder like: http://opensource.spotify.com/cefbuilds/cef_binary_3.3396.1785.ga27bbfa_windows64.tar.bz2 and http://opensource.spotify.com/cefbuilds/cef_binary_3.3396.1785.ga27bbfa_windows32.tar.bz2
+- copy the version_src.ps1 to version.ps1
+- Edit version.ps1 set the folder the binaries are in for example: `$VAR_CEF_USE_BINARY_PATH=".\..\CEFBinaries\";` and set extension to the downloaded extension: `$VAR_CEF_BINARY_EXT="tar.bz2";`
+- Run build.ps1
 
 ## General Warnings for build flags:
 - Cannot do component builds as it will not work for other items
