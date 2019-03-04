@@ -94,7 +94,7 @@ Then if you have multiple subscriptions set the one you want with:
 Next run this and enter a new username and password to configure the new VM with:
 ```$cred = Get-Credential -Message "Enter user and password for remote machine admin"```
 
-Next we will run the deploy script, by default it can configure the machine to automatically shutdown at 11:30 PDT if you provide an email it will do this and notify you.  If you do not you need to manually turn the machine off when done. You can adjust time and such in the az_create.ps1 at the top (along with some other items but likely you do not need to adjust them):
+Next we will run the deploy script, by default it can configure the machine to automatically shutdown at 11:30pm PDT if you provide an email it will do this and notify you.  If you do not you need to manually turn the machine off when done. You can adjust time and such in the az_create.ps1 at the top (along with some other items but likely you do not need to adjust them):
 ```./az_create.ps1 -admin_creds $cred -shutdown_email "john@gmail.com"```
 
 It should print out when done Public IP: 123.123.123.123

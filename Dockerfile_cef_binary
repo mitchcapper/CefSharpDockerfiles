@@ -5,9 +5,6 @@ COPY --from=builder c:/code/binaries c:/code/binaries
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
-RUN Invoke-WebRequest 'https://www.7-zip.org/a/7z1801-x64.msi' -OutFile '/code/7zip.msi';
-RUN Start-Process msiexec.exe -Wait -ArgumentList '/i c:\code\7zip.msi /quiet /norestart /L*v install.log'
-ENV CEF_COMMAND_7ZIP C:/Program Files/7-Zip/7z.exe
 RUN [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12;Invoke-WebRequest 'https://github.com/cefsharp/cef-binary/archive/master.zip' -OutFile '/code/master.zip';
 RUN Expand-Archive c:\code\master.zip -DestinationPath "C:\code\cef-binary";
 WORKDIR /code/cef-binary/cef-binary-master/

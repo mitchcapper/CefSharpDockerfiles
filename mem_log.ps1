@@ -1,7 +1,10 @@
 $max = 0;
 $max_ws = 0;
 while($true){
-    $proc = Get-Process Link -ErrorAction SilentlyContinue;
+	$proc = Get-Process lld-Link -ErrorAction SilentlyContinue;
+    if (! proc){
+		$proc = Get-Process Link -ErrorAction SilentlyContinue;	
+    }
     if ($proc){
         $proc = $proc[0];
         $memory = $proc.PM;

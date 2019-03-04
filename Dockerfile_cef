@@ -9,6 +9,7 @@ ENV DEPOT_TOOLS_WIN_TOOLCHAIN 0
 ENV CEF_USE_GN 1
 ENV GYP_MSVS_VERSION 2017
 ARG DUAL_BUILD="0"
+ARG BINARY_EXT="zip"
 ARG GYP_DEFINES="target_arch=x64 "
 RUN setX /M DEPOT_TOOLS_WIN_TOOLCHAIN 0;setX /M GYP_MSVS_VERSION 2017;setx /M GN_DEFINES "$env:GN_DEFINES";setx /M GYP_DEFINES "$env:GYP_DEFINES";setx /M DUAL_BUILD "$env:DUAL_BUILD";
 ARG CHROME_BRANCH=3239
@@ -18,4 +19,5 @@ RUN cd c:/code/depot_tools/;update_depot_tools.bat;git checkout .\cipd.ps1;updat
 ADD functions.ps1 cef_build.ps1 cef_patch.ps1 cef_patch_*.diff c:/code/
 # Comment out the next step if you want to do it by hand, make sure to change the build args to env options like:
 # -e DUAL_BUILD="0" -e GN_DEFINES="is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome" -e GYP_DEFINES="" -e CHROME_BRANCH="3396"
+ARG CEF_SAVE_SOURCES
 RUN c:/code/cef_build.ps1

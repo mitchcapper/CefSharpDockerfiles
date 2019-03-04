@@ -4,6 +4,14 @@ $WorkingDir = split-path -parent $MyInvocation.MyCommand.Definition;
 . (Join-Path $WorkingDir 'functions.ps1')
 
 $build_args_add = "";
+if (! $env:BINARY_EXT){
+	$env:BINARY_EXT="zip";
+}
+if ($env:BINARY_EXT -eq "7z"){
+	$env:CEF_COMMAND_7ZIP="C:/Program Files/7-Zip/7z.exe";
+}
+$env:CEF_ARCHIVE_FORMAT = $env:BINARY_EXT;
+
 if ($env:DUAL_BUILD -eq "1" -and $env:CHROME_BRANCH -lt 3396){ #newer builds can take a good bit more time linking just let run with double the proc count
 	$cores = ([int]$env:NUMBER_OF_PROCESSORS) + 2; #ninja defaults to number of procs + 2 
 	if ($cores % 2 -eq 1){
@@ -14,15 +22,15 @@ if ($env:DUAL_BUILD -eq "1" -and $env:CHROME_BRANCH -lt 3396){ #newer builds can
 Function RunBuild{
     [CmdletBinding()]
     Param($build_args_add,$version)
-    return RunProc "host" -proc "c:/code/depot_tools/ninja.exe" -opts "$build_args_add -C out/Release_GN_$version cefclient" -no_wait;
+    return RunProc -verbose_mode "host" -proc "c:/code/depot_tools/ninja.exe" -opts "$build_args_add -C out/Release_GN_$version cefclient" -no_wait;
 }
 RunProc -proc "c:/code/depot_tools/python.bat" -errok -opts "c:/code/automate/automate-git.py --download-dir=c:/code --branch=$env:CHROME_BRANCH --no-build --no-debug-build --no-distrib";
 Set-Location -Path c:/code/chromium/src/cef;
 if (! (Test-Path /code/already_patched -PathType Leaf)){
-#    "1" > /code/already_patched
     copy c:/code/*.ps1 .
     copy c:/code/*.diff .
     ./cef_patch.ps1
+    "1" > /code/already_patched    
     if ($env:GN_DEFINES -contains "proprietary_codecs" -and $env:CHROME_BRANCH -lt 3396){
     	#I was unable to generate a patch that worked across branches so manually patching the file per: https://bitbucket.org/chromiumembedded/cef/issues/2352/windows-3239-build-fails-due-to-missing
     	#this is only needed for versions < 3396
@@ -75,13 +83,17 @@ if ($px86.ExitCode -ne 0){
 Set-Location -Path C:/code/chromium/src/cef/tools/;
 RunProc -proc "C:/code/chromium/src/cef/tools/make_distrib.bat" -opts "--ninja-build --allow-partial";
 RunProc -proc "C:/code/chromium/src/cef/tools/make_distrib.bat" -opts "--ninja-build --allow-partial --x64-build";
-if (@(dir -Filter "cef_binary_3.*_windows32.zip" "c:/code/chromium/src/cef/binary_distrib/").Count -ne 1){
+if (@(dir -Filter "cef_binary_3.*_windows32.$env:BINARY_EXT" "c:/code/chromium/src/cef/binary_distrib/").Count -ne 1){
 	throw "Not able to find win32 file as expected";
 }
-if (@(dir -Filter "cef_binary_3.*_windows64.zip" c:/code/chromium/src/cef/binary_distrib/).Count -ne 1){
+if (@(dir -Filter "cef_binary_3.*_windows64.$env:BINARY_EXT" "c:/code/chromium/src/cef/binary_distrib/").Count -ne 1){
 	throw "Not able to find win64 file as expected";
 }
-mkdir c:/code/binaries;
-copy-item c:/code/chromium/src/cef/binary_distrib/*.zip -destination  C:/code/binaries;
+mkdir c:/code/binaries -Force;
+copy-item ("c:/code/chromium/src/cef/binary_distrib/*." + $env:BINARY_EXT) -destination  C:/code/binaries;
 Set-Location -Path /;
+if ($env:CEF_SAVE_SOURCES -eq "1"){
+	RunProc -errok -proc ($env:ProgramFiles + "\\7-Zip\\7z.exe") -opts "a -aoa -y -mx=1 -r -tzip c:\code\sources.zip c:/code/chromium";
+}
+
 Remove-Item -Recurse -Force c:/code/chromium;

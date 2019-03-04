@@ -1,4 +1,5 @@
 FROM cef_binary
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 RUN MKDIR c:/code/cefsharp
 WORKDIR c:/code/cefsharp
 RUN $env:Path = 'c:/Program Files/Git/bin/;' + $env:Path;setx /M PATH $env:Path;

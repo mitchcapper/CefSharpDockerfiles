@@ -5,10 +5,14 @@ Function RunProc{
     Param($proc,$opts,
     [switch] $errok,
     [switch] $dry_run,
+    [switch] $redirect_output,
     [switch] $no_wait,
     [ValidateSet("verbose","host","none")] 
 	[String] $verbose_mode="host"
     )
+    if ($no_wait -and $redirect_output){
+    	throw "Cannot do no_wait and redirect_output";
+    }
     if ($proc.ToUpper().EndsWith(".PL")){
         $path = (C:\Windows\system32\where.exe $proc | Out-String).Trim()
         $opts = "$path $opts";
@@ -24,18 +28,56 @@ Function RunProc{
 		Write-Verbose $verbose_str;
     }
     $pinfo.WorkingDirectory = $working;
-    $pinfo.UseShellExecute = $false;
+    $pinfo.UseShellExecute = $false;    
+
     $pinfo.Arguments = $opts;
     $p = New-Object System.Diagnostics.Process;
     $p.StartInfo = $pinfo;
+    $oStdOutEvent = $null;
+    $oStdErrEvent = $null;
+    $oStdOutBuilder = $null;
+    $oStdErrBuilder = $null;
     if ($dry_run){
     	return $null;
+    }
+
+    if ($redirect_output){
+		$pinfo.RedirectStandardError = $true;
+		$pinfo.RedirectStandardOutput = $true;
+		$oStdOutBuilder = New-Object -TypeName System.Text.StringBuilder;
+    	$oStdErrBuilder = New-Object -TypeName System.Text.StringBuilder;
+		$sScripBlock = {
+		        if (! [String]::IsNullOrWhitespace($EventArgs.Data)) {
+		        	$Event.MessageData.AppendLine($EventArgs.Data);
+		            #Write-Host $EventArgs.Data; #not sure how big the buffer is for this
+		            #[console]::WriteLine($EventArgs.Data); #console.WriteLine does not work for remote powershell, but does display instant output
+		        }
+		    };		
+		$oStdOutEvent = Register-ObjectEvent -InputObject $p -Action $sScripBlock -EventName 'OutputDataReceived' -MessageData $oStdOutBuilder;
+    	$oStdErrEvent = Register-ObjectEvent -InputObject $p -Action $sScripBlock -EventName 'ErrorDataReceived'  -MessageData $oStdErrBuilder;
     }
     $p.Start() | Out-Null;
     if ($no_wait){
     	return $p;
     }
-    $p.WaitForExit();
+    if ($redirect_output){
+ 		$p.BeginOutputReadLine();
+	   	$p.BeginErrorReadLine();
+	}
+	$p.WaitForExit();
+
+    if ($redirect_output){
+		Unregister-Event -SourceIdentifier $oStdOutEvent.Name;
+    	Unregister-Event -SourceIdentifier $oStdErrEvent.Name;
+    	$stdout = $oStdOutBuilder.ToString().Trim();
+    	$stderr = $oStdErrBuilder.ToString().Trim();
+    	if (! [String]::IsNullOrWhitespace($stdout)){
+    		Write-Host $stdout;
+    	}
+    	if (! [String]::IsNullOrWhitespace($stderr)){
+    		Write-Host $stderr;
+    	}
+	}
     if ($p.ExitCode -ne 0 -and -not $errok){
         throw "Process $proc $opts exited with non zero code: $($p.ExitCode) aborting!" ;
     }

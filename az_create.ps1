@@ -67,6 +67,8 @@ if (! $secretURL){
 	$fileName = ".\$certificateName.pfx"
 
 	Export-PfxCertificate -Cert $cert -FilePath $fileName -Password $CERT_PASS_SEC
+	#not sure why we can't just call Remove-Item on $cert but does not work
+	Get-ChildItem -Path cert:\CurrentUser\My\$thumbprint | Remove-Item	
 	$fileContentBytes = Get-Content $fileName -Encoding Byte
 	$fileContentEncoded = [System.Convert]::ToBase64String($fileContentBytes)
 
@@ -85,6 +87,7 @@ if (! $secretURL){
 	Write-Host "Going to store certificate in vault"
 	Set-AzureKeyVaultSecret -VaultName $VAULT_NAME -Name $SECRET_NAME -SecretValue $secret | Out-Null
 	$secretURL = (Get-AzureKeyVaultSecret -VaultName $VAULT_NAME -Name $SECRET_NAME).Id
+
 }else{
 	Write-Host "Secure storage for cert already exists reusing"
 	$secretURL = $secretURL.Id;
