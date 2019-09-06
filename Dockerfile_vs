@@ -1,4 +1,5 @@
-ARG BASE_DOCKER_FILE="microsoft/dotnet-framework:4.7.2-runtime-windowsservercore-1803"
+ARG BASE_DOCKER_FILE="mcr.microsoft.com/windows/servercore:1809-amd64"
+ENV COMPLUS_NGenProtectedProcess_FeatureEnabled 0
 FROM $BASE_DOCKER_FILE
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 

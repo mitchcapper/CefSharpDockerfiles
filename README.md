@@ -27,7 +27,7 @@
 ## Summary
 Automated chrome cef building and/or cefsharp building dockerfiles and scripts.
 
-While the processes of building CEF and CEFSHARP are not hard they require a very exacting environment and build steps can take a _long_ time so are annoying to repeat.  The goal if this repo is a collection of scripts to automate everything to make it easy for anyone to do.  We are using Docker to run everything in a container as it makes it much easier to reproduce and won't pollute your dev environment with all the pre-reqs.  You can easily tweak the exact versions you want to build, and the build flags.  From creating a VM on your cloud provider of choice (or your own machine) it is about 20 minutes of setup, starting a build script, and just waiting a few hours for it to spit out the compiled binaries.  It has been tested with 63, 65, 67, 69 and 70 but would likely work for any modern chrome build without changes (in most cases).
+While the processes of building CEF and CEFSHARP are not hard they require a very exacting environment and build steps can take a _long_ time so are annoying to repeat.  The goal if this repo is a collection of scripts to automate everything to make it easy for anyone to do.  We are using Docker to run everything in a container as it makes it much easier to reproduce and won't pollute your dev environment with all the pre-reqs.  You can easily tweak the exact versions you want to build, and the build flags.  From creating a VM on your cloud provider of choice (or your own machine) it is about 20 minutes of setup, starting a build script, and just waiting a few hours for it to spit out the compiled binaries.  It has been tested with chrome 63->75 but would likely work for any modern chrome build without changes (in most cases).
 
 
 ## Thanks
@@ -43,7 +43,7 @@ Beware if using the exact same version string as an official CEF Build as it wil
 
 In part we use the latest version of several installers/build tools if they changed so might the success of these dockerfiles.  It does not build the debug versions of CEF or CEFSharp.   This could be added as an option pretty easily (but would probably at-least double build times). For some reason I had issues getting the automated build script for CEF to work doing the calls by hand is pretty basic however.
 
-Window 10 Client (Pro) by default with docker uses HyperV isolation, this mode is very non performant vs process isolation mode.
+Window 10 Client (Pro) by default with docker uses HyperV isolation, this mode is very non performant vs process isolation mode.  Make sure to change it (and see the note below).
 
 ## Requirements
 The following requirements are for chrome 63->70 and the current vs_2017 installer, they may change over time.  Compiling is largely CPU bound but linking is largely IO bound.
@@ -144,7 +144,7 @@ With the Azure F32 v2 host above the total estimated build time is about 2.1 hou
 - cefsharp: 4 minutes
 
 ### HyperV Isolation (for server or Windows 10 client) Mode
-HyperV isolation mode should be avoided if possible.  It is slower, and more prone to fail.  For Windows 10 client there is not a **legal** alternative.  NOTE: If you are not using process isolation mode you WILL need to set ```$VAR_HYPERV_MEMORY_ADD``` and make sure your page file is properly sized (recommend a page file at least a few gigs bigger as it needs that amount of FREE page file space).  It will set the memory on every docker build step to up the default memory limit.  Technically this is primarily needed in the CEF build step.   NOTE if you stop docker during a build with HyperV it does not properly kill off the hyperV container restart docker to fix this.
+HyperV isolation mode should be avoided if possible.  It is slower, and more prone to fail.  For Windows 10 clients below 1809 (October 2018 edition) there is not a **legal** alternative. You must also use Docker Desktop build newer than October of 2018. NOTE: If you are not using process isolation mode you WILL need to set ```$VAR_HYPERV_MEMORY_ADD``` and make sure your page file is properly sized (recommend a page file at least a few gigs bigger as it needs that amount of FREE page file space).  It will set the memory on every docker build step to up the default memory limit.  Technically this is primarily needed in the CEF build step.   NOTE if you stop docker during a build with HyperV it does not properly kill off the hyperV container restart docker to fix this.
 
 ## Build Process
 Once docker is setup and running copy this repo to a local folder.  Copy versions_src.ps1 to versions.ps1 and change the version strings to match what you want.  NOTE BASE_DOCKER_FILE must match the same kernel as the host machine IF you are using process isolation mode.  This means you cannot use the 1709 image on an older host and you can use and older image on a 1709 host.  Either base file is fine however to use just match it to the host.  

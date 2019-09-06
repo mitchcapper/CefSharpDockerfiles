@@ -11,7 +11,6 @@ if ($env:BINARY_EXT -eq "7z"){
 	$env:CEF_COMMAND_7ZIP="C:/Program Files/7-Zip/7z.exe";
 }
 $env:CEF_ARCHIVE_FORMAT = $env:BINARY_EXT;
-
 if ($env:DUAL_BUILD -eq "1" -and $env:CHROME_BRANCH -lt 3396){ #newer builds can take a good bit more time linking just let run with double the proc count
 	$cores = ([int]$env:NUMBER_OF_PROCESSORS) + 2; #ninja defaults to number of procs + 2 
 	if ($cores % 2 -eq 1){
@@ -19,6 +18,7 @@ if ($env:DUAL_BUILD -eq "1" -and $env:CHROME_BRANCH -lt 3396){ #newer builds can
 	}
 	$build_args_add = "-j " + ($cores/2);
 }
+
 Function RunBuild{
     [CmdletBinding()]
     Param($build_args_add,$version)
@@ -83,10 +83,12 @@ if ($px86.ExitCode -ne 0){
 Set-Location -Path C:/code/chromium/src/cef/tools/;
 RunProc -proc "C:/code/chromium/src/cef/tools/make_distrib.bat" -opts "--ninja-build --allow-partial";
 RunProc -proc "C:/code/chromium/src/cef/tools/make_distrib.bat" -opts "--ninja-build --allow-partial --x64-build";
-if (@(dir -Filter "cef_binary_3.*_windows32.$env:BINARY_EXT" "c:/code/chromium/src/cef/binary_distrib/").Count -ne 1){
+
+
+if (@(dir -Filter "cef_binary_*_windows32.$env:BINARY_EXT" "c:/code/chromium/src/cef/binary_distrib/").Count -ne 1){
 	throw "Not able to find win32 file as expected";
 }
-if (@(dir -Filter "cef_binary_3.*_windows64.$env:BINARY_EXT" "c:/code/chromium/src/cef/binary_distrib/").Count -ne 1){
+if (@(dir -Filter "cef_binary_*_windows64.$env:BINARY_EXT" "c:/code/chromium/src/cef/binary_distrib/").Count -ne 1){
 	throw "Not able to find win64 file as expected";
 }
 mkdir c:/code/binaries -Force;

@@ -40,7 +40,7 @@ if (! $NoMemoryWarn){
 			$total_memory_gb += $file.MaximumSize/1kb; #is zero if system managed, then we really don't know how big it could be.
 		}
 		if ($total_memory_gb -lt $min_gigs){
-			if (! (confirm("Warning $warning.  Your machine may not have enough memory, make sure your page files are working and can grow to allow it. (Disable this warning with -$NoMemoryWarn flag). Do you want to proceed?"))){
+			if (! (confirm("Warning $warning.  Your machine may not have enough memory, make sure your page files are working and can grow to allow it. (Disable this warning with -NoMemoryWarn flag). Do you want to proceed?"))){
 				exit 1;
 			}
 

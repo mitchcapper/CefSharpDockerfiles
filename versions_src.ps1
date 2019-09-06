@@ -1,6 +1,6 @@
-$VAR_CHROME_BRANCH="3396";
-$VAR_CEFSHARP_VERSION="67.0.90";
-$VAR_CEFSHARP_BRANCH="cefsharp/67";
+$VAR_CHROME_BRANCH="3370";
+$VAR_CEFSHARP_VERSION="75.0.90";
+$VAR_CEFSHARP_BRANCH="cefsharp/75";
 $VAR_BASE_DOCKER_FILE="microsoft/dotnet-framework:4.7.2-runtime-windowsservercore-1803"; #microsoft/dotnet-framework:4.7.1-windowsservercore-1709
 $VAR_DUAL_BUILD="0"; #set to 1 to build x86 and x64 together, mainly to speed up linking which is single threaded, note may need excess ram.
 $VAR_GN_DEFINES="";

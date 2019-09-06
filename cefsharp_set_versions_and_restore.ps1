@@ -31,7 +31,8 @@ $WorkingDir = split-path -parent $MyInvocation.MyCommand.Definition;
 if ($env:CEF_VERSION_STR -eq "auto"){
     $name = (dir -Filter cef.redist.x64.*.nupkg $env:PACKAGE_SOURCE)[0].Name;
     $name = ($name -replace "cef.redist.x64.", "") -replace ".nupkg", "";
-    if ($name -and $name.StartsWith("3." + $env:CHROME_BRANCH) ) {
+    $base_check = $env:CEFSHARP_VERSION.SubString(0, $env:CEFSHARP_VERSION.IndexOf('.'));
+    if ($name -and $name.StartsWith($base_check + ".") ) { #with new version string format we will just make sure they are both starting with the same master version
         $env:CEF_VERSION_STR = $name;
         setx /M CEF_VERSION_STR $env:CEF_VERSION_STR;
     }
