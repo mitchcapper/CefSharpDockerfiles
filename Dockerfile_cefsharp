@@ -14,11 +14,10 @@ ARG CEF_VERSION_STR=auto
 ARG CHROME_BRANCH=3239
 ENV PACKAGE_SOURCE C:/code/cef-binary/cef-binary-master/NuGet
 
-#This next line is not used just skipped as a check at this point
-ENV VS141COMNTOOLS C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Auxiliary/Build
 ADD cefsharp_patch_*.diff cefsharp_set_versions_and_restore.ps1 functions.ps1 cefsharp_patch.ps1 c:/code/cefsharp/
 RUN ./cefsharp_patch.ps1
 RUN ./cefsharp_set_versions_and_restore.ps1
-RUN [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12;./build.ps1 -Target vs2017 -Version $env:CEFSHARP_VERSION -AssemblyVersion $env:CEFSHARP_VERSION; 
+#ADD tmp_cefsharp_build.ps1 /code/cefsharp/build.ps1
+RUN [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12;./build.ps1 -Verbose -Target vs2019 -Version $env:CEFSHARP_VERSION -AssemblyVersion $env:CEFSHARP_VERSION; 
 RUN cp $env:PACKAGE_SOURCE/*.nupkg C:/code/cefsharp/nuget/
 RUN Compress-Archive -Path C:/code/cefsharp/nuget/*.nupkg -CompressionLevel Fastest -DestinationPath C:\packages_cefsharp

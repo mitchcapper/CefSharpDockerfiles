@@ -6,6 +6,7 @@
 - [Quick Start](#quick-start)
 - [Caveats](#caveats)
 - [Requirements](#requirements)
+- [New Volume Mode](#new-volume-mode)
 - [Server Setup](#server-setup)
 	- [Docker For Windows Config File](#docker-for-windows-config-file)
 	- [Azure Specifics](#azure-specifics)
@@ -27,15 +28,17 @@
 ## Summary
 Automated chrome cef building and/or cefsharp building dockerfiles and scripts.
 
-While the processes of building CEF and CEFSHARP are not hard they require a very exacting environment and build steps can take a _long_ time so are annoying to repeat.  The goal if this repo is a collection of scripts to automate everything to make it easy for anyone to do.  We are using Docker to run everything in a container as it makes it much easier to reproduce and won't pollute your dev environment with all the pre-reqs.  You can easily tweak the exact versions you want to build, and the build flags.  From creating a VM on your cloud provider of choice (or your own machine) it is about 20 minutes of setup, starting a build script, and just waiting a few hours for it to spit out the compiled binaries.  It has been tested with chrome 63->75 but would likely work for any modern chrome build without changes (in most cases).
+While the processes of building CEF and CEFSHARP are not hard they require a very exacting environment and build steps can take a _long_ time so are annoying to repeat.  The goal if this repo is a collection of scripts to automate everything to make it easy for anyone to do.  We are using Docker to run everything in a container as it makes it much easier to reproduce and won't pollute your dev environment with all the pre-reqs.  You can easily tweak the exact versions you want to build, and the build flags.  From creating a VM on your cloud provider of choice (or your own machine) it is about 20 minutes of setup, starting a build script, and just waiting a few hours for it to spit out the compiled binaries.  It has been tested with chrome 63->81 but would likely work for any modern chrome build without changes (in most cases).
 
 
 ## Thanks
-Thanks to the fantastic CEFSharp team, especially @amaitland who works insanely hard on the open source project.  @perlun provided some great direction on the Windows building and was also a huge help.  Please support CEFSharp if you use it, even if you do a small monthly donation of $10 or $25 it can be a big help: https://salt.bountysource.com/teams/cefsharp
+Thanks to the fantastic CEFSharp team, especially @amaitland who works insanely hard on the open source project.  @perlun provided some great direction on the Windows building and was also a huge help.  Please support CEFSharp if you use it, even if you do a small monthly donation of $10 or $25 it can be a big help: https://github.com/sponsors/amaitland  (primary CEFSharp developer, and full time Dad).
 
 ## Quick Start
+If you are building in process isolation mode (recommended) make sure the base image file is the same build as your actual OS (or the VM's os).  IE if you are on windows Fall 2018 release 1803 (10.0.17134) change VAR_BASE_DOCKER_FILE to the 1803 image. Run ./build.ps1 and it should build the packages. 
+
 For a super fast start look at the [azure auto provision option below](#azure-auto-create-scripts).  As long as you have an azure account created it can create the entire setup and build in a few commands.
-If using Azure create a F32_v2 VM with the image "Windows Server 2016 Datacenter - with Containers", if using another machine just install docker for windows (make sure you have 20GB (40GB for chrome < 65) of ram between actual ram + page file). Set the [Docker For Windows Config File](#docker-for-windows-config-file) changing the path to the folder to store data on (suggested local temp drive) and restart docker service.   Copy the items from this repo into a folder. Copy the versions_src.ps1 to versions.ps1 and change the variables to what you want: for example ```$VAR_GN_DEFINES="is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome";$VAR_DUAL_BUILD="1";```. Only use DUAL_BUILD if you have 30 gigs of ram or more, otherwise leave it at 0 and the build will take an extra 20-40 minutes.  If you are building in process isolation mode (recommended) make sure the base image file is the same build as your actual OS.  IE if you are on windows Fall 2018 release 1803 (10.0.17134) change VAR_BASE_DOCKER_FILE to the 1803 image. Run ./build.ps1 and it should build the packages. 
+If using Azure create a F32_v2 VM with the image "Datacenter Core 1903 with Containers", if using another machine just install docker for windows (make sure you have 20GB (40GB for chrome < 65) of ram between actual ram + page file). Set the [Docker For Windows Config File](#docker-for-windows-config-file) changing the path to the folder to store data on (suggested local temp drive) and restart docker service.   Copy the items from this repo into a folder. Copy the versions_src.ps1 to versions.ps1 and change the variables to what you want: for example ```$VAR_GN_DEFINES="is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome";$VAR_DUAL_BUILD="1";```. Only use DUAL_BUILD if you have 30 gigs of ram or more, otherwise leave it at 0 and the build will take an extra 20-40 minutes. 
 
 
 ## Caveats
@@ -46,11 +49,13 @@ In part we use the latest version of several installers/build tools if they chan
 Window 10 Client (Pro) by default with docker uses HyperV isolation, this mode is very non performant vs process isolation mode.  Make sure to change it (and see the note below).
 
 ## Requirements
-The following requirements are for chrome 63->70 and the current vs_2017 installer, they may change over time.  Compiling is largely CPU bound but linking is largely IO bound.
+The following requirements are for chrome 63->77 and the current vs_2019 installer, they may change over time.  Compiling is largely CPU bound but linking is largely IO bound.
 
 - At least 20GB of ram dedicated to this would recommend 30GB total with page file to make sure you don't run out (older builds like 63 were 32GB with 40GB total).  You can have any amount of that 20/30GB as a page file, just beware the less actual ram the much slower linking will be.
 - At least 250GB of space.
 
+## New Volume Mode
+Due to a bug in 1903 (https://github.com/microsoft/hcsshim/issues/708) a new method had to be found rather than building all the cef source in a normal docker build step.   The solution was to move the source building to store data in a volume.  This has several benefits now including: builds can be resumed (if you force the same volume to be used), source code can be left behind on the volume as docker will not manually copy this with the storage driver (previously very non-performant).  Downsides include the fact it will leave volumes behind that need to be removed from unsuccessful builds, there is a bit of a hacked step to support volumes.  To support volumes we have to use `docker run` for the cef build step (as docker build does not support volumes during build).  This means we needed a way to detect IF we need to run the build step or if it was already completed successfully.  To do this we rely on some tag naming tests (see build script).
 
 ## Server Setup
 There is not much in terms of a software requirements other than docker. You can run it on Windows Server or Windows 10 Client.
@@ -58,6 +63,8 @@ For Windows 10 Client Install it from https://store.docker.com/editions/communit
 
 ### Docker For Windows Config File
 You will want a docker configuration with options similar to this. Note if you are on Windows 10 Client you will need to leave isolation=hyperv in the config file.  On windows client you can use the docker settings (Right-click on the Docker whale icon in the on the task bar, then click "Settings..." then click to advanced mode). For server the file is edited directly (or created if it didn't exist) at C:\ProgramData\docker\config\daemon.json
+
+**Note 1903 Bug** There is a bug in 1903 that prevents containers bigger than 20GB (https://github.com/microsoft/hcsshim/issues/708).  In theory a work around for docker should come down soon, but if you get a `hcsshim::PrepareLayer - failed failed in Win32: The parameter is incorrect. (0x57)` error you will need to remove the storage opts arg below.
 ```
 {
   "registry-mirrors": [],
@@ -136,10 +143,10 @@ You could also expose the docker server to the internet and use remote docker co
 
 
 ### Estimated time requirements
-With the Azure F32 v2 host above the total estimated build time is about 2.1 hours (~$6 on azure). Machines are nice 600MB/sec read/write to the local disk.  There are larger VM's as well up to 72+ CPU's however some of the build stages are very linear.  Note it can vary somewhat dramatically for the not cef build steps based on the luck of the draw (but the cef build is most of the build time).  It seems local IO depending on what physical host it is spun up on can cause 30-50% performance fluxes.  Most of the build steps make efficient use of the machine however: The git cloning is not very efficient. It is 30 minutes of the cef build time below. It doesn't quite max out network or IO. The linking stage is also not super efficient see the DUAL_BUILD flag below to help with that. Linking will take 20+ minutes per platform (40 total unless run concurrently).  Here are the individual build/commit times:
+With the Azure F32 v2 host above the total estimated build time is about 2-3 hours depending on CEF version (~$6 on azure). Machines are nice 600MB/sec read/write to the local disk.  There are larger VM's as well up to 72+ CPU's however some of the build stages are very linear.  Note it can vary somewhat dramatically for the not cef build steps based on the luck of the draw (but the cef build is most of the build time).  It seems local IO depending on what physical host it is spun up on can cause 30-50% performance fluxes.  Most of the build steps make efficient use of the machine however: The git cloning is not very efficient. It is 30 minutes of the cef build time below. It doesn't quite max out network or IO. The linking stage is also not super efficient see the DUAL_BUILD flag below to help with that. Linking will take 20+ minutes per platform (40 total unless run concurrently).  Here are the individual build/commit times:
 - pull source image: 3 minutes
-- vs: 15 minutes
-- cef: 1.8 hours (with DUAL_BUILD)
+- vs: 8 minutes
+- cef: 1.8->3.2 hours (with DUAL_BUILD)
 - cef-binary: 3 minutes
 - cefsharp: 4 minutes
 
@@ -154,14 +161,14 @@ Next run build.ps1 and if you are lucky you will end up with a cefsharp_packages
 To be safer you can run the biggest build command by hand. The hardest (longest) build step if the CEF build at the start. You can comment out the last step in the dockerfile and manually do that step and commit it.  Infact you can just docker run the build image from before than manually call cef_build.ps1 one or more times (it should do a decent job at auto-resuming) until success.  If you are using a proper host with enough ram it should be able to automatically  build 9 times out of 10 (if not higher) with its current redundant tries.  Of course if you prefer to manually run the commands from it you can do that too. To do so comment out the final build step in Dockerfile_cef then run the following:
 ```
 	#So if the autmate-git.py doesn't work (if something errors out it doesn't always stop at the right point) try running the build steps manually that are there.
-	# From the c:/code/chromium/src folder run the build hooks to download tools: gclient runhooks
-	# From the c:/code/chromium/src/cef folder run the following to make the projects: ./cef_create_projects.bat
-	# From the c:/code/chromium/src
+	# From the c:/code/chromium_git/chromium/src folder run the build hooks to download tools: gclient runhooks
+	# From the c:/code/chromium_git/chromium/src/cef folder run the following to make the projects: ./cef_create_projects.bat
+	# From the c:/code/chromium_git/chromium/src
 	# ninja -C out/Release_GN_x64 cefclient
 	# ninja -C out/Release_GN_x86 cefclient
-	# cd C:/code/chromium/src/cef/tools/
-	# C:/code/chromium/src/cef/tools/make_distrib.bat --ninja-build --allow-partial;
-	# c:/code/chromium/src/cef/tools/make_distrib.bat --ninja-build --allow-partial --x64-build;
+	# cd C:/code/chromium_git/chromium/src/cef/tools/
+	# C:/code/chromium_git/chromium/src/cef/tools/make_distrib.bat --ninja-build --allow-partial;
+	# c:/code/chromium_git/chromium/src/cef/tools/make_distrib.bat --ninja-build --allow-partial --x64-build;
 	# Allow partial needed if not building debug builds, make sure to run it when done or run the cef_build last few commands to create the archive with the result and to clean up the workspace of the source files.
 ```
 ### Dual Build Flag

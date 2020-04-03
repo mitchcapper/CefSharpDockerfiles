@@ -124,4 +124,8 @@ Function WriteException($exp){
 	$stack = $exp.ScriptStackTrace;
 	$stack = $stack.replace("`n","`n`t")
 	write-host "`tStack Trace: $stack"
+	if ($exp.Exception.InnerException){
+		write-host "`tInnerException:" -ForegroundColor Yellow -NoNewline
+		write-host " $($exp.Exception.InnerException.Message)" -ForegroundColor Red
+	}
 }

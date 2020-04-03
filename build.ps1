@@ -1,7 +1,8 @@
 [CmdletBinding()]
 Param(
 	[Switch] $NoSkip,
-	[Switch] $NoMemoryWarn
+	[Switch] $NoMemoryWarn,
+	[Switch] $NoVS2019PatchCopy
 )
 $WorkingDir = split-path -parent $MyInvocation.MyCommand.Definition;
 . (Join-Path $WorkingDir 'functions.ps1')
@@ -15,6 +16,12 @@ Set-StrictMode -version latest;
 $ErrorActionPreference = "Stop";
 $ORIGINAL_WORKING_DIR = Get-Location;
 try{
+if (-not $VAR_CEF_BUILD_MOUNT_VOL_NAME){
+	$VAR_CEF_BUILD_MOUNT_VOL_NAME = "cefbuild_" + -join ((97..122) | Get-Random -Count 5 | % {[char]$_});
+}
+
+Write-Host -Foreground Green "Will use local volume/build name: '$VAR_CEF_BUILD_MOUNT_VOL_NAME' if not empty will resume cef build in there set `$VAR_CEF_BUILD_MOUNT_VOL_NAME in versions.ps1 to this value to resume"
+
 $redirect_output = $false;
 $PSSenderInfo = Get-Variable -name "PSSenderInfo" -ErrorAction SilentlyContinue;
 if ($PSSenderInfo){
@@ -47,7 +54,11 @@ if (! $NoMemoryWarn){
 		}
 	}
 }
-
+if (! $NoVS2019PatchCopy){
+	if ( (Test-Path "cef_patch_find_vs2019_tools.diff") -eq $false){
+		Copy-Item sample_patches/cef_patch_find_vs2019_tools.diff -Destination .
+	}
+}
 
 echo *.zip | out .dockerignore
 TimerNow("Starting");
@@ -67,7 +78,14 @@ if ($VAR_CEF_USE_BINARY_PATH -and $VAR_CEF_USE_BINARY_PATH -ne ""){
 	RunProc -proc "docker" -redirect_output:$redirect_output -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg BINARY_EXT=`"$VAR_CEF_BINARY_EXT`" -f $docker_file_name -t cef ."
 	Set-Location $ORIGINAL_WORKING_DIR;
 } else {
-	RunProc -proc "docker" -redirect_output:$redirect_output -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg CEF_SAVE_SOURCES=`"$VAR_CEF_SAVE_SOURCES`" --build-arg BINARY_EXT=`"$VAR_CEF_BINARY_EXT`" --build-arg DUAL_BUILD=`"$VAR_DUAL_BUILD`" --build-arg GN_DEFINES=`"$VAR_GN_DEFINES`" --build-arg GYP_DEFINES=`"$VAR_GYP_DEFINES`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cef -t cef ."
+	RunProc -proc "docker" -redirect_output:$redirect_output -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg CEF_SAVE_SOURCES=`"$VAR_CEF_SAVE_SOURCES`" --build-arg BINARY_EXT=`"$VAR_CEF_BINARY_EXT`" --build-arg GN_ARGUMENTS=`"$VAR_GN_ARGUMENTS`" --build-arg DUAL_BUILD=`"$VAR_DUAL_BUILD`" --build-arg GN_DEFINES=`"$VAR_GN_DEFINES`" --build-arg GYP_DEFINES=`"$VAR_GYP_DEFINES`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cef -t cef_build_env ."
+	$exit_code = RunProc -errok -proc "docker" -opts "tag i_$($VAR_CEF_BUILD_MOUNT_VOL_NAME) cef"; #if this fails we know it didn't build correctly and to continue
+	if ($exit_code -ne 0){
+		RunProc -errok -proc "docker" -opts "rm c_$($VAR_CEF_BUILD_MOUNT_VOL_NAME)_tmp"
+		RunProc -proc "docker" -redirect_output:$redirect_output -opts "run $VAR_HYPERV_MEMORY_ADD -v $($VAR_CEF_BUILD_MOUNT_VOL_NAME):C:/code/chromium_git --name c_$($VAR_CEF_BUILD_MOUNT_VOL_NAME)_tmp cef_build_env"
+		$exit_code = RunProc -errok -proc "docker" -opts "commit c_$($VAR_CEF_BUILD_MOUNT_VOL_NAME)_tmp i_$($VAR_CEF_BUILD_MOUNT_VOL_NAME)";
+		$exit_code = RunProc -errok -proc "docker" -opts "tag i_$($VAR_CEF_BUILD_MOUNT_VOL_NAME) cef";
+	}
 }
 TimerNow("CEF Build");
 if (! $VAR_CEF_BUILD_ONLY){
@@ -88,7 +106,10 @@ if (! $VAR_CEF_BUILD_ONLY){
 	
 	TimerNow("CEF copy files locally");
 }
-
+if ($VAR_REMOVE_VOLUME_ON_SUCCESSFUL_BUILD){
+	RunProc --errok -proc "docker" -opts "volumes rm $VAR_CEF_BUILD_MOUNT_VOL_NAME";
+}
+Write-Host -ForegroundColor Green Build completed successfully! See $global:PERF_FILE for timing for each step.
 }catch{
 	WriteException $_;
 }

@@ -223,8 +223,8 @@
                     },
                     "imageReference": {
                         "publisher": "MicrosoftWindowsServer",
-                        "offer": "WindowsServerSemiAnnual",
-                        "sku": "Datacenter-Core-1809-with-Containers-smalldisk",
+                        "offer": "WindowsServer",
+                        "sku": "Datacenter-Core-1903-with-Containers-smalldisk",
                         "version": "latest"
                     }
                 },

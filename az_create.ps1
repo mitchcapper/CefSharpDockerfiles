@@ -137,5 +137,6 @@ $ip =Get-AzureRmPublicIpAddress -Name "CefTestVM-ip" -ResourceGroupName $RESOURC
 Write-Host "Public IP: " $ip.IpAddress
 
 }catch{
+	Write-Host -Foreground Yellow "If you get an exception about invalid template make sure you have your quotas high enough to support whatever size machine you are creating.  Otherwise use Get-AzureRMLog -DetailedOutput -CorrelationId xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx with the id from the exception to see the issue";
 	WriteException $_;
 }

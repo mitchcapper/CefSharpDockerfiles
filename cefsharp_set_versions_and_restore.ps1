@@ -82,15 +82,15 @@ foreach ($folder in $folders){
     }
 }
 #Previously there was a bug in 63 where vs2017 was flagged as 2015 for the bin packages.
-$props_path = "CefSharp.props";
-$content = Get-Content $props_path;
-$bad_str = "'15.0'`">2015</VisualStudioProductVersion>";
-$good_str = "'15.0'`">2017</VisualStudioProductVersion>";
-if ($content -like "*" + $bad_str    + "*"){
-    $content = $content -replace $bad_str   , $good_str;
-    $content > $props_path;
-    Write-Host  Updated $props_path;
-}
+#$props_path = "CefSharp.props";
+#$content = Get-Content $props_path;
+#$bad_str = "'16.0'`">2017</VisualStudioProductVersion>";
+#$good_str = "'16.0'`">2019</VisualStudioProductVersion>";
+#if ($content -like "*" + $bad_str    + "*"){
+    #$content = $content -replace $bad_str   , $good_str;
+    #$content > $props_path;
+    #Write-Host  Updated $props_path;
+#}
 $args = "restore -source `"$env:PACKAGE_SOURCE`" -FallbackSource https://api.nuget.org/v3/index.json CefSharp3.sln";
 $p = Start-Process -Wait -PassThru -FilePath $nuget -ArgumentList $args;
 if (($ret = $p.ExitCode) ) { throw ('Install failed with exit code 0x{0:x}' -f $ret) };
