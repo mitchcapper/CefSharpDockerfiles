@@ -209,7 +209,7 @@ Note the DUAL_BUILD may speed up builds by running x86 and x64 builds concurrent
 
 ## Additional Resources
 The following were helpful:
-- http://perlun.eu.org/en/2017/11/30/building-chromium-and-cef-from-source
+- https://perlun.eu.org/en/2017/11/30/building-chromium-and-cef-from-source
 - https://bitbucket.org/chromiumembedded/cef/wiki/MasterBuildQuickStart.md
 - https://docs.microsoft.com/en-us/visualstudio/install/advanced-build-tools-container
 - https://docs.microsoft.com/en-us/visualstudio/install/build-tools-container
