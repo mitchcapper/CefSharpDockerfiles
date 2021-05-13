@@ -48,7 +48,7 @@ Function RunBuild{
     Param($build_args_add,$version)
     return RunProc -verbose_mode "host" -proc "c:/code/depot_tools/ninja.exe" -opts "$build_args_add -C out/Release_GN_$version cefclient" -no_wait;
 }
-RunProc -proc "c:/code/depot_tools/python.bat" -errok -opts "c:/code/automate/automate-git.py --download-dir=c:/code/chromium_git --branch=$env:CHROME_BRANCH --no-build --no-debug-build --no-distrib";
+RunProc -proc "c:/code/depot_tools/python.bat" -errok -opts "c:/code/automate/automate-git.py --download-dir=c:/code/chromium_git --branch=$env:CHROME_BRANCH --no-build --no-debug-build --no-distrib --no-depot-tools-update";
 Set-Location -Path c:/code/chromium_git/chromium/src/cef;
 if (! (Test-Path /code/chromium_git/already_patched -PathType Leaf)){
     copy c:/code/*.ps1 .

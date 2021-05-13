@@ -54,7 +54,7 @@ if (! $NoMemoryWarn){
 		}
 	}
 }
-if (! $NoVS2019PatchCopy){
+if (! $NoVS2019PatchCopy -and $VAR_CHROME_BRANCH -lt 4103 ){
 	if ( (Test-Path "cef_patch_find_vs2019_tools.diff") -eq $false){
 		Copy-Item sample_patches/cef_patch_find_vs2019_tools.diff -Destination .
 	}

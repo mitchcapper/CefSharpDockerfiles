@@ -3,13 +3,13 @@ SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPref
 RUN MKDIR c:/code/cefsharp
 WORKDIR c:/code/cefsharp
 RUN $env:Path = 'c:/Program Files/Git/bin/;' + $env:Path;setx /M PATH $env:Path;
+ARG CEFSHARP_VERSION=63.0.90
 RUN git clone https://github.com/cefsharp/CefSharp.git .
 ARG CEFSHARP_BRANCH="cefsharp/63"
 #This line and the one two below are due to waiting to use the new vs2017 compat build script
 RUN cp build.ps1 ../
 RUN git checkout $env:CEFSHARP_BRANCH;
 RUN cp ../build.ps1 .
-ARG CEFSHARP_VERSION=63.0.90
 ARG CEF_VERSION_STR=auto
 ARG CHROME_BRANCH=3239
 ENV PACKAGE_SOURCE C:/code/cef-binary/cef-binary-master/NuGet
