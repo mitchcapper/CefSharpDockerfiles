@@ -103,7 +103,7 @@ if (! $VAR_CEF_BUILD_ONLY){
 }else{
 	docker rm cef;
 	Start-Sleep -s 3; #sometimes we are too fast, file in use error
-	RunProc -proc "docker" -redirect_output:$redirect_output -opts "run --name cef powershell Compress-Archive -Path C:/code/binaries/*.zip -CompressionLevel Fastest -DestinationPath /packages_cef"
+	RunProc -proc "docker" -redirect_output:$redirect_output -opts "run --name cef cef powershell Compress-Archive -Path C:/code/binaries/*.zip -CompressionLevel Fastest -DestinationPath /packages_cef"
 	RunProc -proc "docker" -redirect_output:$redirect_output -opts "cp cef:/packages_cef.zip ."
 	
 	TimerNow("CEF copy files locally");
