@@ -2,7 +2,8 @@ $VAR_CHROME_BRANCH="3370";
 $VAR_CEFSHARP_VERSION="75.0.90";
 $VAR_CEFSHARP_BRANCH="cefsharp/75";
 $VAR_BASE_DOCKER_FILE="mcr.microsoft.com/windows/servercore:1809-amd64";#mcr.microsoft.com/windows/servercore:1903-amd64
-$VAR_DUAL_BUILD="0"; #set to 1 to build x86 and x64 together, mainly to speed up linking which is single threaded, note may need excess ram.
+$VAR_DUAL_BUILD="0"; #set to 1 to build all arches together, mainly to speed up linking which is single threaded, note may need excess ram.
+$VAR_BUILD_ARCHES="x86 x64 arm64";
 $VAR_GN_DEFINES="";
 $VAR_CEF_BUILD_MOUNT_VOL_NAME=""; #force using this volume for building, allows resuming MUST BE LOWER CASE
 $VAR_GN_ARGUMENTS="--ide=vs2019 --sln=cef --filters=//cef/*";

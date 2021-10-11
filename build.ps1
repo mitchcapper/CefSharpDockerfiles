@@ -66,6 +66,7 @@ RunProc -proc "docker" -redirect_output:$redirect_output -opts "pull $VAR_BASE_D
 TimerNow("Pull base file");
 RunProc -proc "docker" -redirect_output:$redirect_output -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg BASE_DOCKER_FILE=`"$VAR_BASE_DOCKER_FILE`" -f Dockerfile_vs -t vs ."
 TimerNow("VSBuild");
+
 if ($VAR_CEF_USE_BINARY_PATH -and $VAR_CEF_USE_BINARY_PATH -ne ""){
 	$docker_file_name="Dockerfile_cef_create_from_binaries";
 
@@ -78,18 +79,19 @@ if ($VAR_CEF_USE_BINARY_PATH -and $VAR_CEF_USE_BINARY_PATH -ne ""){
 	RunProc -proc "docker" -redirect_output:$redirect_output -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg BINARY_EXT=`"$VAR_CEF_BINARY_EXT`" -f $docker_file_name -t cef ."
 	Set-Location $ORIGINAL_WORKING_DIR;
 } else {
-	RunProc -proc "docker" -redirect_output:$redirect_output -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg CEF_SAVE_SOURCES=`"$VAR_CEF_SAVE_SOURCES`" --build-arg BINARY_EXT=`"$VAR_CEF_BINARY_EXT`" --build-arg GN_ARGUMENTS=`"$VAR_GN_ARGUMENTS`" --build-arg DUAL_BUILD=`"$VAR_DUAL_BUILD`" --build-arg GN_DEFINES=`"$VAR_GN_DEFINES`" --build-arg GYP_DEFINES=`"$VAR_GYP_DEFINES`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cef -t cef_build_env ."
+	RunProc -proc "docker" -redirect_output:$redirect_output -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg CEF_SAVE_SOURCES=`"$VAR_CEF_SAVE_SOURCES`" --build-arg ARCHES=`"$VAR_BUILD_ARCHES`" --build-arg BINARY_EXT=`"$VAR_CEF_BINARY_EXT`" --build-arg GN_ARGUMENTS=`"$VAR_GN_ARGUMENTS`" --build-arg DUAL_BUILD=`"$VAR_DUAL_BUILD`" --build-arg GN_DEFINES=`"$VAR_GN_DEFINES`" --build-arg GYP_DEFINES=`"$VAR_GYP_DEFINES`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cef -t cef_build_env ."
 	$exit_code = RunProc -errok -proc "docker" -opts "tag i_$($VAR_CEF_BUILD_MOUNT_VOL_NAME) cef"; #if this fails we know it didn't build correctly and to continue
 	if ($exit_code -ne 0){
 		RunProc -errok -proc "docker" -opts "rm c_$($VAR_CEF_BUILD_MOUNT_VOL_NAME)_tmp"
 		RunProc -proc "docker" -redirect_output:$redirect_output -opts "run $VAR_HYPERV_MEMORY_ADD -v $($VAR_CEF_BUILD_MOUNT_VOL_NAME):C:/code/chromium_git --name c_$($VAR_CEF_BUILD_MOUNT_VOL_NAME)_tmp cef_build_env"
+		
 		$exit_code = RunProc -errok -proc "docker" -opts "commit c_$($VAR_CEF_BUILD_MOUNT_VOL_NAME)_tmp i_$($VAR_CEF_BUILD_MOUNT_VOL_NAME)";
 		$exit_code = RunProc -errok -proc "docker" -opts "tag i_$($VAR_CEF_BUILD_MOUNT_VOL_NAME) cef";
 	}
 }
 TimerNow("CEF Build");
 if (! $VAR_CEF_BUILD_ONLY){
-	RunProc -proc "docker" -redirect_output:$redirect_output -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg BINARY_EXT=`"$VAR_CEF_BINARY_EXT`" -f Dockerfile_cef_binary -t cef_binary ."
+	RunProc -proc "docker" -redirect_output:$redirect_output -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg ARCHES=`"$VAR_BUILD_ARCHES`" --build-arg BINARY_EXT=`"$VAR_CEF_BINARY_EXT`" -f Dockerfile_cef_binary -t cef_binary ."
 	TimerNow("CEF Binary compile");
 	RunProc -proc "docker" -redirect_output:$redirect_output -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg CEFSHARP_BRANCH=`"$VAR_CEFSHARP_BRANCH`" --build-arg CEFSHARP_VERSION=`"$VAR_CEFSHARP_VERSION`" --build-arg CEF_VERSION_STR=`"$VAR_CEF_VERSION_STR`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cefsharp -t cefsharp ."
 	TimerNow("CEFSharp compile");

@@ -11,6 +11,13 @@ WORKDIR /code/cef-binary/cef-binary-master/
 RUN $env:Path = 'c:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\;' + $env:Path;setx /M PATH $env:Path;
 RUN 'New-ItemProperty -Path Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\MSBuild\ToolsVersions\4.0 -Name VCTargetsPath -PropertyType String -Value "`$`(MSBuildExtensionsPath32)\Microsoft.Cpp\v4.0\"'
 ARG BINARY_EXT="zip"
-#ADD tmp_cef_bin_build.ps1 /code/cef-binary/cef-binary-master/build.ps1
-RUN ./build.ps1 -Verbose -DownloadBinary local -CefBinaryDir /code/binaries/ -CefVersion auto -NoDebugBuild -Extension $env:BINARY_EXT -Target vs2019;./build.ps1 -DownloadBinary local -CefBinaryDir /code/binaries/ -CefVersion auto -NoDebugBuild -Extension $env:BINARY_EXT -Target nupkg-only;
+ARG ARCHES
+
+##Next lines incase trying custom build items before in master
+#ADD cef-binary-build.ps1 /code/cef-binary/cef-binary-master/build.ps1
+#Add chromiumembeddedframework.runtime.nuspec.template /code/cef-binary/cef-binary-master/NuGet/
+#Add chromiumembeddedframework.runtime.win.nuspec /code/cef-binary/cef-binary-master/NuGet/
+
+RUN ./build.ps1 -Verbose -DownloadBinary local -CefBinaryDir /code/binaries/ -CefVersion auto -NoDebugBuild -Extension $env:BINARY_EXT -BuildArches $env:ARCHES -Target vs2019;
+RUN ./build.ps1 -DownloadBinary local -CefBinaryDir /code/binaries/ -CefVersion auto -NoDebugBuild -Extension $env:BINARY_EXT -BuildArches $env:ARCHES -Target nupkg-only;
 RUN Compress-Archive -Path NuGet -CompressionLevel Fastest -DestinationPath C:\packages

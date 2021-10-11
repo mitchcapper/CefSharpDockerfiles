@@ -2,8 +2,7 @@ FROM vs
 
 RUN $env:Path = 'c:/Program Files/Git/bin/;' + $env:Path;setx /M PATH $env:Path;
 RUN Invoke-WebRequest 'https://storage.googleapis.com/chrome-infra/depot_tools.zip' -OutFile 'C:/code/depot_tools.zip';
-RUN Expand-Archive C:/code/depot_tools.zip -DestinationPath "C:/code/depot_tools";
-RUN $env:Path = 'c:/code/depot_tools/;' + $env:Path;setx /M PATH $env:Path;
+RUN Expand-Archive C:/code/depot_tools.zip -DestinationPath "c:/code/depot_tools";
 ARG GN_DEFINES="is_debug=false"
 ARG GN_ARGUMENTS="--ide=vs2019 --sln=cef --filters=//cef/*"
 ENV DEPOT_TOOLS_WIN_TOOLCHAIN 0
@@ -13,14 +12,16 @@ ARG DUAL_BUILD="0"
 ARG BINARY_EXT="zip"
 ARG GYP_DEFINES="target_arch=x64 "
 ARG CEF_SAVE_SOURCES
+ARG ARCHES
 ARG CHROME_BRANCH=3239
-RUN setX /M DEPOT_TOOLS_WIN_TOOLCHAIN 0;setX /M GYP_MSVS_VERSION "$env:GN_DEFINES";setx /M GN_DEFINES "$env:GN_DEFINES";setx /M GN_ARGUMENTS "$env:GN_ARGUMENTS";setx /M GYP_DEFINES "$env:GYP_DEFINES";setx /M DUAL_BUILD "$env:DUAL_BUILD";setx /M BINARY_EXT "$env:BINARY_EXT";setx /M CEF_SAVE_SOURCES "$env:CEF_SAVE_SOURCES";setx /M CHROME_BRANCH "$env:CHROME_BRANCH";
+RUN setX /M DEPOT_TOOLS_WIN_TOOLCHAIN 0;setX /M GYP_MSVS_VERSION "$env:GN_DEFINES";setx /M GN_DEFINES "$env:GN_DEFINES";setx /M GN_ARGUMENTS "$env:GN_ARGUMENTS";setx /M GYP_DEFINES "$env:GYP_DEFINES";setx /M DUAL_BUILD "$env:DUAL_BUILD";setx /M BINARY_EXT "$env:BINARY_EXT";setx /M ARCHES "$env:ARCHES";setx /M CEF_SAVE_SOURCES "$env:CEF_SAVE_SOURCES";setx /M CHROME_BRANCH "$env:CHROME_BRANCH";
 
 ADD https://bitbucket.org/chromiumembedded/cef/raw/master/tools/automate/automate-git.py c:/code/automate/
-RUN cd c:/code/depot_tools/;update_depot_tools.bat;git checkout .\cipd.ps1;update_depot_tools.bat;
-
+ADD automate-git.py c:/code/automate/
+RUN cd c:/code/depot_tools/;./update_depot_tools.bat;./update_depot_tools.bat;
+RUN $env:Path = 'c:/code/depot_tools/;' + $env:Path;setx /M PATH $env:Path;
 ADD functions.ps1 cef_build.ps1 cef_patch.ps1 cef_patch_*.diff c:/code/
-# Comment out the next step if you want to do it by hand, make sure to change the build args to env options like:
-# -e DUAL_BUILD="0" -e GN_DEFINES="is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome" -e GYP_DEFINES="" -e CHROME_BRANCH="3396"
-#RUN c:/code/cef_build.ps1
+
+
+
 CMD ["powershell", "c:/code/cef_build.ps1"]
