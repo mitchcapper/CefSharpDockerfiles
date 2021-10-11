@@ -67,12 +67,12 @@ Function RunBuild{
     return RunProc -verbose_mode "host" -proc "c:/code/depot_tools/ninja.exe" -opts "$build_args_add -C out/Release_GN_$version cefclient" -no_wait;
 }
 
-$chrome_data = Invoke-RestMethod -Uri 'https://omahaproxy.appspot.com/all.json'
-$win_data = $chrome_data | Where  { $_.os -eq "win64"} | Select -First 1
-$branch_data = $win_data.versions | Where {$_.true_branch -eq $env:CHROME_BRANCH} | Select -First 1
-$latest_tag = $branch_data.version
-
 if ($Env:SHALLOW -eq "1"){
+	$chrome_data = Invoke-RestMethod -Uri 'https://omahaproxy.appspot.com/all.json'
+	$win_data = $chrome_data | Where  { $_.os -eq "win64"} | Select -First 1
+	$branch_data = $win_data.versions | Where {$_.true_branch -eq $env:CHROME_BRANCH} | Select -First 1
+	$latest_tag = $branch_data.version
+	
 	if (! (Test-Path /code/chromium_git/cef/.git)){ #we will manually clone this out first time or wont be on right branch
 		Runproc -proc "c:/code/depot_tools/git.bat" -opts "clone --depth 1 --branch $env:CHROME_BRANCH https://bitbucket.org/chromiumembedded/cef.git c:/code/chromium_git/cef"; #as shallow fails if they don't speify the branch so we will do it first for them
 	}

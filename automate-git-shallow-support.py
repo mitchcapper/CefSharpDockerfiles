@@ -36,6 +36,14 @@ cef_git_url = 'https://bitbucket.org/chromiumembedded/cef.git'
 
 chromium_channel_json_url = 'https://omahaproxy.appspot.com/all.json'
 
+shallow_git_depth_limit = ''
+shallow_gclient_no_history = ''
+
+if os.environ.get('SHALLOW') == '1':
+	shallow_gclient_no_history = '--no-history'
+	shallow_git_depth_limit = '--depth 1'
+
+
 ##
 # Global system variables.
 ##
@@ -182,7 +190,7 @@ def download_and_extract(src, target):
   """ Extracts the contents of src, which may be a URL or local file, to the
       target directory. """
   temporary = False
-
+  sys.stdout.write("-------- downloading and extracting \"%s\" to \"%s\"...\n" % (src, target))
   if src[:4] == 'http':
     # Attempt to download a URL.
     opener = FancyURLopener({})
@@ -1181,7 +1189,7 @@ else:
 # Create the CEF checkout if necessary.
 if not options.nocefupdate and not os.path.exists(cef_dir):
   cef_checkout_new = True
-  run('%s clone %s %s' % (git_exe, cef_url, cef_dir), download_dir,
+  run('%s clone %s %s %s' % (git_exe,shallow_git_depth_limit, cef_url, cef_dir), download_dir,
       depot_tools_dir)
 else:
   cef_checkout_new = False
@@ -1191,8 +1199,8 @@ if not options.nocefupdate and os.path.exists(cef_dir):
   cef_current_hash = get_git_hash(cef_dir, 'HEAD')
 
   if not cef_checkout_new:
-    # Fetch updated sources.
-    run('%s fetch' % (git_exe), cef_dir, depot_tools_dir)
+    # fetch --depth 1 updated sources.
+    run('%s fetch %s' % (git_exe, shallow_git_depth_limit), cef_dir, depot_tools_dir)
 
   cef_desired_hash = get_git_hash(cef_dir, cef_checkout)
   cef_checkout_changed = cef_checkout_new or force_change or \
@@ -1287,7 +1295,7 @@ if not os.path.exists(gclient_file) or options.forceconfig:
 # Initial Chromium checkout.
 if not options.nochromiumupdate and not os.path.exists(chromium_src_dir):
   chromium_checkout_new = True
-  run("gclient sync --nohooks --with_branch_heads --jobs 16", \
+  run("gclient sync " + shallow_gclient_no_history + " --nohooks --with_branch_heads --jobs 16", \
       chromium_dir, depot_tools_dir)
 else:
   chromium_checkout_new = False
@@ -1299,13 +1307,13 @@ if not options.dryrun and not is_git_checkout(chromium_src_dir):
 if os.path.exists(chromium_src_dir):
   msg("Chromium URL: %s" % (get_git_url(chromium_src_dir)))
 
-# Fetch Chromium changes so that we can perform the necessary calculations using
+# fetch Chromium changes so that we can perform the necessary calculations using
 # local history.
 if not options.nochromiumupdate and os.path.exists(chromium_src_dir):
-  # Fetch updated sources.
-  run("%s fetch" % (git_exe), chromium_src_dir, depot_tools_dir)
+  # fetch --depth 1 updated sources.
+  run("%s fetch %s" % (git_exe,shallow_git_depth_limit), chromium_src_dir, depot_tools_dir)
   # Also fetch tags, which are required for release branch builds.
-  run("%s fetch --tags" % (git_exe), chromium_src_dir, depot_tools_dir)
+  run("%s fetch %s --tags" % (git_exe,shallow_git_depth_limit), chromium_src_dir, depot_tools_dir)
 
 # Determine the Chromium checkout options required by CEF.
 chromium_compat_version = build_compat_versions['chromium_checkout']
@@ -1375,7 +1383,7 @@ if chromium_checkout_changed:
   apply_deps_patch()
 
   # Update third-party dependencies including branch/tag information.
-  run("gclient sync %s--nohooks --with_branch_heads --jobs 16" % \
+  run("gclient sync " + shallow_gclient_no_history + " %s--nohooks --with_branch_heads --jobs 16" % \
       ('--reset ' if discard_local_changes else ''), chromium_dir, depot_tools_dir)
 
   # Patch the Chromium runhooks scripts if necessary.
