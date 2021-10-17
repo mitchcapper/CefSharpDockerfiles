@@ -28,7 +28,7 @@
 ## Summary
 Automated chrome cef building and/or cefsharp building dockerfiles and scripts.
 
-While the processes of building CEF and CEFSHARP are not hard they require a very exacting environment and build steps can take a _long_ time so are annoying to repeat.  The goal if this repo is a collection of scripts to automate everything to make it easy for anyone to do.  We are using Docker to run everything in a container as it makes it much easier to reproduce and won't pollute your dev environment with all the pre-reqs.  You can easily tweak the exact versions you want to build, and the build flags.  From creating a VM on your cloud provider of choice (or your own machine) it is about 20 minutes of setup, starting a build script, and just waiting a few hours for it to spit out the compiled binaries.  It has been tested with chrome 63->81 but would likely work for any modern chrome build without changes (in most cases).
+While the processes of building CEF and CEFSHARP are not hard they require a very exacting environment and build steps can take a _long_ time so are annoying to repeat.  The goal if this repo is a collection of scripts to automate everything to make it easy for anyone to do.  We are using Docker to run everything in a container as it makes it much easier to reproduce and won't pollute your dev environment with all the pre-reqs.  You can easily tweak the exact versions you want to build, and the build flags.  From creating a VM on your cloud provider of choice (or your own machine) it is about 20 minutes of setup, starting a build script, and just waiting a few hours for it to spit out the compiled binaries.  It has been tested with chrome 63->94 but would likely work for any modern chrome build without changes (in most cases).
 
 
 ## Thanks
@@ -49,7 +49,7 @@ In part we use the latest version of several installers/build tools if they chan
 Window 10 Client (Pro) by default with docker uses HyperV isolation, this mode is very non performant vs process isolation mode.  Make sure to change it (and see the note below).
 
 ## Requirements
-The following requirements are for chrome 63->77 and the current vs_2019 installer, they may change over time.  Compiling is largely CPU bound but linking is largely IO bound.
+The following requirements are for chrome and the current vs_2019 installer, they may change over time.  Compiling is largely CPU bound but linking is largely IO bound.
 
 - At least 20GB of ram dedicated to this would recommend 30GB total with page file to make sure you don't run out (older builds like 63 were 32GB with 40GB total).  You can have any amount of that 20/30GB as a page file, just beware the less actual ram the much slower linking will be.
 - At least 250GB of space.
@@ -64,7 +64,6 @@ For Windows 10 Client Install it from https://store.docker.com/editions/communit
 ### Docker For Windows Config File
 You will want a docker configuration with options similar to this. Note if you are on Windows 10 Client you will need to leave isolation=hyperv in the config file.  On windows client you can use the docker settings (Right-click on the Docker whale icon in the on the task bar, then click "Settings..." then click to advanced mode). For server the file is edited directly (or created if it didn't exist) at C:\ProgramData\docker\config\daemon.json
 
-**Note 1903 Bug** There is a bug in 1903 that prevents containers bigger than 20GB (https://github.com/microsoft/hcsshim/issues/708).  In theory a work around for docker should come down soon, but if you get a `hcsshim::PrepareLayer - failed failed in Win32: The parameter is incorrect. (0x57)` error you will need to remove the storage opts arg below.
 ```
 {
   "registry-mirrors": [],
