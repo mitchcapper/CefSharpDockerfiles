@@ -21,6 +21,7 @@ RUN ./cefsharp_set_versions_and_restore.ps1
 ##Next line for manually testing a replacement cefsharp build script before in master
 #ADD cefsharp_build.ps1 /code/cefsharp/build.ps1
 
-RUN [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12;./build.ps1 -BuildArches $env:ARCHES -Verbose -Target vs2019 -Version $env:CEFSHARP_VERSION -AssemblyVersion $env:CEFSHARP_VERSION; 
+RUN [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12;./build.ps1 -BuildArches $env:ARCHES -Verbose -Target "update-build-version" -Version $env:CEFSHARP_VERSION -AssemblyVersion $env:CEFSHARP_VERSION -TargetFramework "NetFramework";
+RUN [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12;./build.ps1 -BuildArches $env:ARCHES -Verbose -Target "vs2019" -Version $env:CEFSHARP_VERSION -AssemblyVersion $env:CEFSHARP_VERSION -TargetFramework "NetFramework";
 RUN cp $env:PACKAGE_SOURCE/*.nupkg C:/code/cefsharp/nuget/
 RUN Compress-Archive -Path C:/code/cefsharp/nuget/*.nupkg -CompressionLevel Fastest -DestinationPath C:\packages_cefsharp

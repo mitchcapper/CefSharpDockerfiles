@@ -12,12 +12,13 @@ RUN $env:Path = 'c:\Program Files (x86)\Microsoft Visual Studio\2019\Community\C
 RUN 'New-ItemProperty -Path Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\MSBuild\ToolsVersions\4.0 -Name VCTargetsPath -PropertyType String -Value "`$`(MSBuildExtensionsPath32)\Microsoft.Cpp\v4.0\"'
 ARG BINARY_EXT="zip"
 ARG ARCHES
+ARG CEFSHARP_VERSION
 
 ##Next lines incase trying custom build items before in master
 #ADD cef-binary-build.ps1 /code/cef-binary/cef-binary-master/build.ps1
 #Add chromiumembeddedframework.runtime.nuspec.template /code/cef-binary/cef-binary-master/NuGet/
 #Add chromiumembeddedframework.runtime.win.nuspec /code/cef-binary/cef-binary-master/NuGet/
 
-RUN ./build.ps1 -Verbose -DownloadBinary local -CefBinaryDir /code/binaries/ -CefVersion auto -NoDebugBuild -Extension $env:BINARY_EXT -BuildArches $env:ARCHES -Target vs2019;
-RUN ./build.ps1 -DownloadBinary local -CefBinaryDir /code/binaries/ -CefVersion auto -NoDebugBuild -Extension $env:BINARY_EXT -BuildArches $env:ARCHES -Target nupkg-only;
+RUN ./build.ps1 -Verbose -DownloadBinary local -CefBinaryDir /code/binaries/ -CefVersion auto -NoDebugBuild -Extension $env:BINARY_EXT -BuildArches $env:ARCHES -Target vs2019; #here we use auto to pickup the actual CEF packages
+RUN ./build.ps1 -DownloadBinary local -CefBinaryDir /code/binaries/ -CefVersion $env:CEFSHARP_VERSION+fakebldv -NoDebugBuild -Extension $env:BINARY_EXT -BuildArches $env:ARCHES -Target nupkg-only; #next we set the cefversion for nuget to the desired cefsharp version rather than the true one from auto, this way all are aligned.
 RUN Compress-Archive -Path NuGet -CompressionLevel Fastest -DestinationPath C:\packages

@@ -24,7 +24,27 @@ Function UpdateProject($path,$original_version,$new_version){
         Write-Host Updated $path;
     }
 }
+Function UpdatePackageConfig($path, [string[]]$CHECK_IDS){
 
+	
+    if(-not (Test-Path $path)) {
+        return;
+    }
+    Write-Host doing $path
+    $xml = [xml](Get-Content ($path));
+    $changed=$false;
+    foreach ($node_name in $CHECK_IDS){
+        $node = $xml.SelectSingleNode("//packages/package[@id='" + $node_name +"']/@version");
+        if ($node -and $node.value -ne $env:CEF_VERSION_STR){
+            $changed=$true;
+            $node.value = $env:CEF_VERSION_STR;
+        }
+    }
+    if ($changed){
+        $xml.Save($path);
+        Write-Host Updated $path;
+    }
+}
 
 
 $WorkingDir = split-path -parent $MyInvocation.MyCommand.Definition;
@@ -55,26 +75,16 @@ if(-not (Test-Path $sdk_path)) {
     throw "The sdk and redist packages should be in the $env:PACKAGE_SOURCE folder but $sdk_path is missing";
 }
 #Check each subfolder for a packages.config, then check each for any of the 3 values
-$CHECK_IDS = ("cef.sdk","cef.redist.x64","cef.redist.x86","cef.redist.arm64");
+$CHECK_IDS = @("cef.sdk","cef.redist.x64","cef.redist.x86","cef.redist.arm64");
 $folders = dir -Directory;
 foreach ($folder in $folders){
-    $package_config_path = [io.path]::combine($WorkingDir,$folder,'Packages.config');
-    if(-not (Test-Path $package_config_path)) {
-        continue;
-    }
-    $xml = [xml](Get-Content ($package_config_path));
-    $changed=$false;
-    foreach ($node_name in $CHECK_IDS){
-        $node = $xml.SelectSingleNode("//packages/package[@id='" + $node_name +"']/@version");
-        if ($node -and $node.value -ne $env:CEF_VERSION_STR){
-            $changed=$true;
-            $node.value = $env:CEF_VERSION_STR;
-        }
-    }
-    if ($changed){
-        $xml.Save($package_config_path);
-        Write-Host Updated $package_config_path;
-    }
+	$package_config_path = [io.path]::combine($WorkingDir,$folder,'Packages.config');
+	UpdatePackageConfig $package_config_path $CHECK_IDS;
+	$package_config_path = [io.path]::combine($WorkingDir,$folder,"packages.${folder}.config");
+	UpdatePackageConfig $package_config_path $CHECK_IDS;
+	$package_config_path = [io.path]::combine($WorkingDir,$folder,"packages.${folder}.netcore.config");
+	UpdatePackageConfig $package_config_path  $CHECK_IDS;
+   
     $projects = dir $folder -Filter *.*proj;
     foreach($project in $projects){
         $project_path = [io.path]::combine($WorkingDir,$folder,$project );
@@ -91,6 +101,7 @@ foreach ($folder in $folders){
     #$content > $props_path;
     #Write-Host  Updated $props_path;
 #}
+
 $args = "restore -source `"$env:PACKAGE_SOURCE`" -FallbackSource https://api.nuget.org/v3/index.json CefSharp3.sln";
 $p = Start-Process -Wait -PassThru -FilePath $nuget -ArgumentList $args;
 if (($ret = $p.ExitCode) ) { 

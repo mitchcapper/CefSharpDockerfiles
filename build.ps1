@@ -91,9 +91,9 @@ if ($VAR_CEF_USE_BINARY_PATH -and $VAR_CEF_USE_BINARY_PATH -ne ""){
 }
 TimerNow("CEF Build");
 if (! $VAR_CEF_BUILD_ONLY){
-	RunProc -proc "docker" -redirect_output:$redirect_output -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg ARCHES=`"$VAR_BUILD_ARCHES`" --build-arg BINARY_EXT=`"$VAR_CEF_BINARY_EXT`" -f Dockerfile_cef_binary -t cef_binary ."
+	RunProc -proc "docker" -redirect_output:$redirect_output -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg ARCHES=`"$VAR_BUILD_ARCHES`" --build-arg BINARY_EXT=`"$VAR_CEF_BINARY_EXT`"  --build-arg CEFSHARP_VERSION=`"$VAR_CEFSHARP_VERSION`" -f Dockerfile_cef_binary -t cef_binary ."
 	TimerNow("CEF Binary compile");
-	RunProc -proc "docker" -redirect_output:$redirect_output -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg CEFSHARP_BRANCH=`"$VAR_CEFSHARP_BRANCH`" --build-arg CEFSHARP_VERSION=`"$VAR_CEFSHARP_VERSION`" --build-arg CEF_VERSION_STR=`"$VAR_CEF_VERSION_STR`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cefsharp -t cefsharp ."
+	RunProc -proc "docker" -redirect_output:$redirect_output -opts "build $VAR_HYPERV_MEMORY_ADD --build-arg CEFSHARP_BRANCH=`"$VAR_CEFSHARP_BRANCH`" --build-arg CEFSHARP_VERSION=`"$VAR_CEFSHARP_VERSION`" --build-arg CEF_VERSION_STR=`"$VAR_CEF_VERSION_STR`"  --build-arg ARCHES=`"$VAR_BUILD_ARCHES`" --build-arg CHROME_BRANCH=`"$VAR_CHROME_BRANCH`" -f Dockerfile_cefsharp -t cefsharp ."
 	TimerNow("CEFSharp compile");
 	RunProc -proc "docker" -opts "rm cefsharp" -errok;
 	Start-Sleep -s 6; #sometimes we are too fast, file in use error
