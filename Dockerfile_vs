@@ -7,7 +7,7 @@ RUN mkdir c:\code\automate;mkdir c:\temp\;mkdir c:\code\chromium_git;;mkdir c:\c
 RUN Invoke-WebRequest 'https://aka.ms/vscollect.exe' -OutFile 'C:\TEMP\collect.exe';
 RUN Invoke-WebRequest 'https://dist.nuget.org/win-x86-commandline/v4.1.0/nuget.exe' -OutFile 'c:\code\chromium_git\depot_tools\;';
 
-RUN Invoke-WebRequest 'https://www.7-zip.org/a/7z1801-x64.msi' -OutFile '/code/7zip.msi';
+RUN Invoke-WebRequest 'https://www.7-zip.org/a/7z2201-x64.msi' -OutFile '/code/7zip.msi';
 RUN Start-Process msiexec.exe -Wait -ArgumentList '/i c:\code\7zip.msi /quiet /norestart /L*v install.log'
 
 
